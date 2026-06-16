@@ -19,9 +19,16 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => [],
+    // Explicitly list allowed origins — withCredentials:true forbids wildcard '*'.
+    // Add your domain here when you go live (e.g. 'https://app.fixpay.ng').
+    'allowed_origins' => [
+        'http://129.153.42.30',   // OCI IP (testing)
+        'http://localhost',        // local dev
+        'http://localhost:5173',   // Vite dev server
+    ],
 
-    'allowed_origins_patterns' => ['*'],
+    // Patterns must be valid PHP regex strings. Leave empty when using allowed_origins.
+    'allowed_origins_patterns' => [],
 
     'allowed_headers' => ['*'],
 
