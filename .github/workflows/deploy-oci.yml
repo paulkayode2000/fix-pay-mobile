@@ -66,6 +66,15 @@ jobs:
           name: pwa-dist
           path: fixpay-pwa/dist
 
+      - name: Prepare server permissions for SCP
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.OCI_HOST_IP }}
+          username: ubuntu
+          key: ${{ secrets.OCI_SSH_KEY }}
+          script: |
+            sudo chown -R ubuntu:ubuntu /var/www/fixpay/fixpay-laravel/storage || true
+
       - name: Copy files via SCP
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -74,7 +83,7 @@ jobs:
           key: ${{ secrets.OCI_SSH_KEY }}
           source: "docker-compose.yml,nginx-backend.conf,fixpay-laravel,fixpay-pwa"
           target: "/var/www/fixpay"
-          exclude: "fixpay-laravel/vendor,fixpay-pwa/node_modules,fixpay-laravel/storage"
+          exclude: "fixpay-laravel/vendor,fixpay-pwa/node_modules"
 
       - name: Deploy with Docker Compose
         uses: appleboy/ssh-action@v1.0.3
@@ -86,3 +95,5 @@ jobs:
             cd /var/www/fixpay
             docker compose up -d --build
             docker image prune -f
+            sudo chown -R 33:33 /var/www/fixpay/fixpay-laravel/storage
+            sudo chmod -R 775 /var/www/fixpay/fixpay-laravel/storage
