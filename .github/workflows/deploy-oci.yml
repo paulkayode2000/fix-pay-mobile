@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+      - nginx-as-aproxy-server
+  workflow_dispatch:
 
 jobs:
   test-and-build:
