@@ -17,10 +17,22 @@ class WalletService
     public function createWallet(AppUser $user): Wallet
     {
         return DB::transaction(function () use ($user) {
+            // TEMPORARY: Bypassed real Providus Virtual Account creation for testing.
+            // Uncomment the lines below to re-enable real wallet creation.
+            /*
             $vaData = $this->virtualAccount->createAccount(
                 "{$user->first_name} {$user->last_name}",
                 '' // BVN provided after KYC
             );
+            */
+
+            // Mocked virtual account data for testing
+            $vaData = [
+                'account_number' => '9' . str_pad((string) random_int(100_000_000, 999_999_999), 9, '0'),
+                'bank' => 'Providus Bank',
+                'bank_code' => '101',
+                'reference' => 'mock_va_' . time(),
+            ];
 
             return Wallet::create([
                 'user_id' => $user->id,
