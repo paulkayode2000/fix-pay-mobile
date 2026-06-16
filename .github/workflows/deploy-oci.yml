@@ -74,7 +74,6 @@ jobs:
           key: ${{ secrets.OCI_SSH_KEY }}
           source: "docker-compose.yml,nginx-backend.conf,fixpay-laravel,fixpay-pwa"
           target: "/var/www/fixpay"
-          rm: true # Clean target directory before copying
           exclude: "fixpay-laravel/vendor,fixpay-pwa/node_modules"
 
       - name: Deploy with Docker Compose
