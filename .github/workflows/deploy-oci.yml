@@ -83,7 +83,7 @@ jobs:
           key: ${{ secrets.OCI_SSH_KEY }}
           source: "docker-compose.yml,nginx-backend.conf,fixpay-laravel,fixpay-pwa"
           target: "/var/www/fixpay"
-          exclude: "fixpay-laravel/vendor,fixpay-pwa/node_modules"
+          exclude: "fixpay-laravel/vendor,fixpay-pwa/node_modules,fixpay-laravel/.env"
 
       - name: Deploy with Docker Compose
         uses: appleboy/ssh-action@v1.0.3
