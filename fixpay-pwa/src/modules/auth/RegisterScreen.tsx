@@ -48,6 +48,9 @@ export function RegisterScreen() {
   const onSubmit = async (data: FormData) => {
     setServerError('')
     try {
+      // Sanctum SPA authentication requires fetching the CSRF cookie first.
+      // Axios will then automatically send the XSRF-TOKEN as X-XSRF-TOKEN header.
+      await api.get('/sanctum/csrf-cookie', { baseURL: import.meta.env.VITE_API_URL?.replace('/api', '') })
       await api.post('/auth/register', {
         tenantId,
         first_name: data.first_name,

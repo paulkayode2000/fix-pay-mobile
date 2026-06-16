@@ -32,6 +32,8 @@ export function LoginScreen() {
   const onSubmit = async (data: FormData) => {
     setServerError('')
     try {
+      // Sanctum SPA authentication requires fetching the CSRF cookie first.
+      await api.get('/sanctum/csrf-cookie', { baseURL: import.meta.env.VITE_API_URL?.replace('/api', '') })
       const res = await api.post('/auth/login', {
         identifier: data.identifier,
         password: data.password,
