@@ -60,8 +60,7 @@ export function RegisterScreen() {
         password: data.password,
       })
       localStorage.setItem('fixpay_onboarded', '1')
-      setPending(data.phone, data.email)
-      navigate('/auth/otp')
+      navigate('/auth/login')
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
       setServerError(msg ?? 'Registration failed. Try again.')

@@ -29,35 +29,40 @@ class AuthController extends Controller
             'password'   => 'required|string|min:8',
         ]);
 
-        $user = AppUser::create([
-            'phone'         => $data['phone'],
-            'email'         => $data['email'],
-            'first_name'    => $data['first_name'],
-            'last_name'     => $data['last_name'],
-            'password_hash' => Hash::make($data['password']),
-            'kyc_status'    => 'UNVERIFIED',
-            'tier'          => 1,
-            'status'        => 'ACTIVE',
-        ]);
+        $user = \Illuminate\Support\Facades\DB::transaction(function () use ($data) {
+            $user = AppUser::create([
+                'phone'         => $data['phone'],
+                'email'         => $data['email'],
+                'first_name'    => $data['first_name'],
+                'last_name'     => $data['last_name'],
+                'password_hash' => Hash::make($data['password']),
+                'kyc_status'    => 'UNVERIFIED',
+                'tier'          => 1,
+                'status'        => 'ACTIVE',
+                // Auto-verify for now since OTP is disabled
+                'email_verified_at' => now(),
+                'phone_verified_at' => now(),
+            ]);
 
-        // Create wallet
-        $wallet = $this->walletService->createWallet($user);
+            // Create wallet
+            $wallet = $this->walletService->createWallet($user);
 
-        // Credit welcome bonus for fresh users (50,000 in kobo)
-        \Illuminate\Support\Facades\DB::transaction(function () use ($wallet) {
+            // Credit welcome bonus for fresh users (50,000 in kobo)
             $this->walletService->credit(
                 $wallet,
                 50000 * 100, // 50,000 NGN to kobo
                 'WELCOME_BONUS_' . $wallet->id . '_' . time(),
                 'Welcome bonus for new registration'
             );
+
+            return $user;
         });
 
-        // Send email OTP
-        $this->otpService->send($user->email, 'email', 'verification');
+        // OTP disabled for now to get app working on OCI
+        // $this->otpService->send($user->email, 'email', 'verification');
 
         return response()->json([
-            'message' => 'Registration successful. Check your email for a verification code.',
+            'message' => 'Registration successful. You can now log in.',
             'user_id' => $user->id,
         ], 201);
     }
