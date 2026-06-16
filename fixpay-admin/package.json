@@ -21,7 +21,7 @@
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-hook-form": "^7.75.0",
-    "react-router-dom": "^7.15.0",
+    "react-router-dom": "^7.17.0",
     "recharts": "^2.15.4",
     "tailwind-merge": "^3.6.0",
     "zod": "^4.4.3",
@@ -41,7 +41,7 @@
     "tailwindcss": "^4.3.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
-    "vite": "^8.0.12"
-    ,"vitest": "^3.2.4"
+    "vite": "^8.0.16"
+    ,"vitest": "^4.1.9"
   }
 }
