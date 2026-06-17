@@ -69,6 +69,14 @@ class VtpassPaymentController extends Controller
             'type' => 'nullable|string',
         ]);
 
+        $payload = [
+            'serviceID' => $data['service_id'],
+            'billersCode' => $data['billers_code'],
+        ];
+        if (isset($data['type'])) {
+            $payload['type'] = $data['type'];
+        }
+
         try {
             $response = \Illuminate\Support\Facades\Http::timeout(15)->withoutVerifying()
                 ->withHeaders([
