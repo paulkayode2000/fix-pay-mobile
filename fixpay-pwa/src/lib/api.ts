@@ -14,6 +14,18 @@ const api = axios.create({
 
 const idempotencyCache = new Map<string, { key: string, expiry: number }>()
 
+function generateUUID() {
+  if (typeof self !== 'undefined' && self.crypto && self.crypto.randomUUID) {
+    return self.crypto.randomUUID();
+  }
+  // Fallback for non-secure contexts (HTTP)
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 api.interceptors.request.use(async (config) => {
   // In mock/dev mode the token lives in memory (MSW can't set httpOnly cookies).
   // In production the httpOnly cookie is sent automatically by the browser;
@@ -53,12 +65,12 @@ api.interceptors.request.use(async (config) => {
           return Promise.reject(new Error("DuplicatePaymentCancelled"))
         }
         // User wants a new transaction -> generate fresh key
-        key = self.crypto.randomUUID()
+        key = generateUUID()
         idempotencyCache.set(sig, { key, expiry: now + 60000 })
       } else if (existing && existing.expiry > now) {
         key = existing.key
       } else {
-        key = self.crypto.randomUUID()
+        key = generateUUID()
         const duration = isPayment ? 60000 : (isFavourite ? 30000 : 5000)
         idempotencyCache.set(sig, { key, expiry: now + duration })
       }
