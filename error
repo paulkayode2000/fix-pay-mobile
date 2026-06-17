@@ -1,4 +1,41 @@
-payments.service.ts:139 
- POST http://localhost:5274/api/payments/vtpass 422 (Unprocessable Content)
 
-installHook.js:1 Encountered two children with the same key, `glo-mega-75000`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+tar all files into /tmp/eoLRxPDaSF.tar.gz
+remote server os type is unix
+scp file to server.
+create folder /var/www/fixpay
+untar file eoLRxPDaSF.tar.gz
+error:  tar: fixpay-laravel/storage/framework/views/.gitignore: Cannot open: File exists
+tar: fixpay-laravel/storage/framework/views: Cannot utime: Operation not permitted
+tar: fixpay-laravel/storage/framework/views: Cannot change mode to rwxr-xr-x: Operation not permitted
+tar: fixpay-laravel/storage/framework/testing/.gitignore: Cannot open: File exists
+tar: fixpay-laravel/storage/framework/testing: Cannot utime: Operation not permitted
+tar: fixpay-laravel/storage/framework/testing: Cannot change mode to rwxr-xr-x: Operation not permitted
+tar: fixpay-laravel/storage/framework/sessions/.gitignore: Cannot open: File exists
+tar: fixpay-laravel/storage/framework/sessions: Cannot utime: Operation not permitted
+tar: fixpay-laravel/storage/framework/sessions: Cannot change mode to rwxr-xr-x: Operation not permitted
+tar: fixpay-laravel/storage/framework/.gitignore: Cannot open: File exists
+tar: fixpay-laravel/storage/framework/cache/data/.gitignore: Cannot open: File exists
+tar: fixpay-laravel/storage/framework/cache/data: Cannot utime: Operation not permitted
+tar: fixpay-laravel/storage/framework/cache/data: Cannot change mode to rwxr-xr-x: Operation not permitted
+tar: fixpay-laravel/storage/framework/cache/.gitignore: Cannot open: File exists
+tar: fixpay-laravel/storage/framework/cache: Cannot utime: Operation not permitted
+tar: fixpay-laravel/storage/framework/cache: Cannot change mode to rwxr-xr-x: Operation not permitted
+tar: fixpay-laravel/storage/framework: Cannot utime: Operation not permitted
+tar: fixpay-laravel/storage/framework: Cannot change mode to rwxr-xr-x: Operation not permitted
+tar: fixpay-laravel/storage/app/public/.gitignore: Cannot open: File exists
+tar: fixpay-laravel/storage/app/public: Cannot utime: Operation not permitted
+tar: fixpay-laravel/storage/app/public: Cannot change mode to rwxr-xr-x: Operation not permitted
+tar: fixpay-laravel/storage/app/.gitignore: Cannot open: File exists
+tar: fixpay-laravel/storage/app/private/.gitignore: Cannot open: File exists
+tar: fixpay-laravel/storage/app/private: Cannot utime: Operation not permitted
+tar: fixpay-laravel/storage/app/private: Cannot change mode to rwxr-xr-x: Operation not permitted
+tar: fixpay-laravel/storage/app: Cannot utime: Operation not permitted
+tar: fixpay-laravel/storage/app: Cannot change mode to rwxr-xr-x: Operation not permitted
+tar: fixpay-laravel/storage: Cannot utime: Operation not permitted
+tar: fixpay-laravel/storage: Cannot change mode to rwxr-xr-x: Operation not permitted
+tar: Exiting with failure status due to previous errors
+
+drone-scp error: Process exited with status 2
+drone-scp rollback: remove all target tmp file
+remove file eoLRxPDaSF.tar.gz
+2026/06/16 15:59:08 Process exited with status 2
