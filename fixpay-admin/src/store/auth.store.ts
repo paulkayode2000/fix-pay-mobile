@@ -46,7 +46,7 @@ export const useAdminAuthStore = create<AdminAuthState>((set, get) => ({
       })
     } catch (e) {
       set({ isInitialised: true, isAuthenticated: false })
-      throw e
+      // Suppress throw on initial load to avoid console errors
     }
   },
 

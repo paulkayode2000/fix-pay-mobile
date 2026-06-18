@@ -109,7 +109,7 @@ const router = createBrowserRouter([
       },
     ],
   },
-])
+], { basename: '/fixpay-admin' })
 
 export default function App() {
   return <RouterProvider router={router} />
