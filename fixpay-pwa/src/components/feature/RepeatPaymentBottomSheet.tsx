@@ -63,7 +63,7 @@ export function RepeatPaymentBottomSheet({ tx, open, onClose }: RepeatPaymentBot
   const handlePinChange = async (val: string) => {
     setPin(val)
     setPinError('')
-    if (val.length < 4 || !details || isProcessing) return
+    if (val.length < 6 || !details || isProcessing) return
     startProcessing()
     try {
       await authService.verifyPin(val)

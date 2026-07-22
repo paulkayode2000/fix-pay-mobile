@@ -1,14 +1,20 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { ShieldExclamationIcon } from '@heroicons/react/24/outline'
 import { formatCurrency } from '@/lib/utils'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { TransactionItem } from '@/components/feature/TransactionItem'
+import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
 import type { Wallet, Transaction } from '@/types'
 import { walletService } from '@/lib/services/wallet.service'
+import { useAuthStore } from '@/store/auth.store'
 import { TransactionDetailsBottomSheet } from '@/components/feature/TransactionDetailsBottomSheet'
 
 export function WalletScreen() {
+  const navigate = useNavigate()
+  const { kycCompleted } = useAuthStore()
   const [filter, setFilter] = useState<'all' | 'today' | 'week' | 'month' | 'last_month' | 'custom'>('all')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
@@ -18,13 +24,59 @@ export function WalletScreen() {
     queryKey: ['wallet'],
     queryFn: () => walletService.getBalance(),
     staleTime: 30_000,
+    enabled: kycCompleted,
   })
 
   const { data: txPage, isLoading } = useQuery({
     queryKey: ['transactions', { page: 0, size: 50 }],
     queryFn: () => walletService.getTransactions(0, 50),
     staleTime: 30_000,
+    enabled: kycCompleted,
   })
+
+  // KYC gate — show verification prompt instead of wallet
+  if (!kycCompleted) {
+    return (
+      <div className="flex flex-col h-[100dvh] bg-[#F2F2F7]">
+        <PageHeader title="Wallet" />
+        <div className="flex-1 flex flex-col items-center justify-center px-6 pb-12 animate-slide-up">
+          <div className="bg-white rounded-[24px] p-8 flex flex-col items-center text-center shadow-sm border border-black/5 max-w-sm w-full">
+            <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-4">
+              <ShieldExclamationIcon className="w-8 h-8 text-ios-blue" />
+            </div>
+            <h2 className="text-[18px] font-bold text-gray-900 mb-2">Verification Required</h2>
+            <p className="text-[13px] text-gray-500 leading-relaxed mb-6">
+              Complete your identity verification to open a wallet. Get a virtual account, send money anywhere, and unlock ₦5,000,000 daily transfers.
+            </p>
+            <div className="flex flex-col gap-3 w-full">
+              <div className="flex items-center gap-2 text-left">
+                <span className="w-1.5 h-1.5 rounded-full bg-ios-green shrink-0 mt-1.5" />
+                <span className="text-[12px] text-gray-600">Virtual bank account</span>
+              </div>
+              <div className="flex items-center gap-2 text-left">
+                <span className="w-1.5 h-1.5 rounded-full bg-ios-green shrink-0 mt-1.5" />
+                <span className="text-[12px] text-gray-600">Instant transfers to any bank</span>
+              </div>
+              <div className="flex items-center gap-2 text-left">
+                <span className="w-1.5 h-1.5 rounded-full bg-ios-green shrink-0 mt-1.5" />
+                <span className="text-[12px] text-gray-600">₦5,000,000 daily limit</span>
+              </div>
+            </div>
+            <Button fullWidth className="mt-6" onClick={() => navigate('/kyc')}>
+              Verify Identity
+            </Button>
+            <button
+              onClick={() => navigate('/home')}
+              className="mt-3 text-[12px] font-semibold"
+              style={{ color: 'var(--brand-primary)' }}
+            >
+              Maybe Later
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const txns = txPage?.content ?? []
 
@@ -56,10 +108,7 @@ export function WalletScreen() {
     const today = new Date()
     let lmYear = today.getFullYear()
     let lmMonth = today.getMonth() - 1
-    if (lmMonth < 0) {
-      lmMonth = 11
-      lmYear -= 1
-    }
+    if (lmMonth < 0) { lmMonth = 11; lmYear -= 1 }
     return d.getMonth() === lmMonth && d.getFullYear() === lmYear
   }
 
@@ -89,14 +138,14 @@ export function WalletScreen() {
       <PageHeader title="Wallet" />
 
       {/* Account info card */}
-      <div className="mx-4 mt-4 bg-white rounded-[20px] p-5 animate-slide-up shrink-0 shadow-sm border border-black/5">
+      <div className="mx-4 mt-4 bg-white rounded-[16px] p-5 animate-slide-up shrink-0 shadow-sm border border-black/5">
         <p className="text-[13px] text-gray-400 mb-1">Available Balance</p>
-        <p className="text-[30px] font-black text-gray-900">{formatCurrency(wallet?.balanceKobo ?? 0)}</p>
+        <p className="text-[26px] font-black text-gray-900">{formatCurrency(wallet?.balanceKobo ?? 0)}</p>
         {wallet?.virtualAccount && (
           <div className="mt-3 pt-3 border-t border-gray-100">
             <p className="text-[12px] text-gray-400">Fund via bank transfer:</p>
-            <p className="text-[16px] font-bold text-gray-900 mt-0.5">{wallet.virtualAccount.accountNumber}</p>
-            <p className="text-[13px] text-gray-500">{wallet.virtualAccount.bankName}</p>
+            <p className="text-[15px] font-bold text-gray-900 mt-0.5">{wallet.virtualAccount.accountNumber}</p>
+            <p className="text-[12px] text-gray-500">{wallet.virtualAccount.bankName}</p>
           </div>
         )}
       </div>
@@ -112,7 +161,7 @@ export function WalletScreen() {
           { id: 'custom', label: 'Custom' },
         ] as const).map(f => (
           <button key={f.id} onClick={() => setFilter(f.id)}
-            className="px-4 py-1.5 rounded-full text-[13px] font-semibold transition-all shrink-0 pressable"
+            className="px-4 py-1.5 rounded-full text-[12px] font-semibold transition-all shrink-0 pressable"
             style={filter === f.id ? { background: 'var(--brand-primary)', color: 'white' } : { background: 'white', color: '#8E8E93', border: '1px solid border-black/5' }}>
             {f.label}
           </button>
@@ -141,7 +190,7 @@ export function WalletScreen() {
         {isLoading ? (
           <div className="flex justify-center py-8"><Spinner /></div>
         ) : filteredTxns.length === 0 ? (
-          <div className="bg-white rounded-[16px] p-8 text-center text-gray-400 text-[14px]">No transactions match filter</div>
+          <div className="bg-white rounded-[16px] p-8 text-center text-gray-400 text-[13px]">No transactions match filter</div>
         ) : (
           <div className="flex-1 min-h-0 bg-white rounded-[16px] overflow-hidden flex flex-col border border-black/5 shadow-sm">
             <div className="flex-1 overflow-y-auto pr-0.5 max-h-[380px]">

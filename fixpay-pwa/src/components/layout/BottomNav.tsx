@@ -19,8 +19,8 @@ export function BottomNav() {
         const active = location.pathname.startsWith(to)
         return (
           <NavLink key={to} to={to} className={cn('flex-1 flex flex-col items-center justify-center pt-2 gap-[3px] pressable', active ? 'text-brand' : 'text-gray-400')} style={active ? { color: 'var(--brand-primary)' } : undefined}>
-            {active ? <IconActive className="w-6 h-6" /> : <Icon className="w-6 h-6" />}
-            <span className="text-[10px] font-medium">{label}</span>
+            {active ? <IconActive className="w-5 h-5" /> : <Icon className="w-5 h-5" />}
+            <span className="text-[9px] font-medium">{label}</span>
           </NavLink>
         )
       })}

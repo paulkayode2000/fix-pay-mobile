@@ -1,5 +1,4 @@
 import { createBrowserRouter, RouterProvider, Navigate, Outlet, useLocation } from 'react-router-dom'
-import { DevModeToggle } from '@/components/DevModeToggle'
 import { lazy, Suspense, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
@@ -54,20 +53,14 @@ const DisputesScreen      = lazy(() => import('@/modules/more/DisputesScreen').t
 const DisputeDetailScreen = lazy(() => import('@/modules/more/DisputeDetailScreen').then(m => ({ default: m.DisputeDetailScreen })))
 const RaiseDisputeScreen  = lazy(() => import('@/modules/more/RaiseDisputeScreen').then(m => ({ default: m.RaiseDisputeScreen })))
 const AnalyticsScreen     = lazy(() => import('@/modules/more/AnalyticsScreen').then(m => ({ default: m.AnalyticsScreen })))
-const PortalLaunchpadScreen = lazy(() => import('@/modules/dev/PortalLaunchpadScreen').then(m => ({ default: m.PortalLaunchpadScreen })))
 
 // ─── Guards ────────────────────────────────────────────────────────────────
 
 function RequireAuth() {
-  const { isAuthenticated, kycCompleted, pinCreated, kycDeferred, _hasHydrated } = useAuthStore()
+  const { isAuthenticated, pinCreated, _hasHydrated } = useAuthStore()
   const { pathname } = useLocation()
 
-  // In dev, root opens the launchpad so engineers can jump between apps quickly.
-  if (import.meta.env.DEV && pathname === '/') return <Navigate to="/dev/launchpad" replace />
-
   // Block all routing decisions until Zustand has rehydrated from localStorage.
-  // Without this guard, the first render (with default false values) causes a
-  // flash-redirect to /auth/login before the real persisted state is applied.
   if (!_hasHydrated) return null
 
   // Always show splash on first page load of a new browser session
@@ -75,9 +68,11 @@ function RequireAuth() {
     return <Navigate to="/splash" replace />
   }
 
-  if (!isAuthenticated)                        return <Navigate to="/auth/login" replace />
-  if (!pinCreated)                             return <Navigate to="/auth/pin"   replace />
-  if (!kycCompleted && !kycDeferred && pathname !== '/kyc') return <Navigate to="/kyc" replace />
+  if (!isAuthenticated) return <Navigate to="/auth/login" replace />
+  if (!pinCreated)      return <Navigate to="/auth/pin"   replace />
+
+  // KYC is now voluntary. Users can freely use the app without verification.
+  // KYC is only required when accessing wallet creation or high-limit features.
   return <Outlet />
 }
 
@@ -91,14 +86,11 @@ function TenantLoader() {
     queryFn: () =>
       api
         .get<ApiResponse<TenantConfig>>('/tenant/config', {
-          // Pass server-authoritative slug — set at login from user.tenant_id FK.
-          // Pre-login (null) → backend returns safe FixPay defaults.
           headers: tenantSlug ? { 'X-Tenant-Slug': tenantSlug } : {},
         })
         .then(r => r.data.data),
-    // 5 min staleTime: catches suspended tenants promptly without hammering the endpoint
     staleTime: 5 * 60 * 1000,
-    retry: false, // Don't retry on 404 — pre-login 404 would be a backend regression
+    retry: false,
   })
   useEffect(() => { if (data) setConfig(data) }, [data, setConfig])
   return null
@@ -111,7 +103,6 @@ const router = createBrowserRouter([
     element: <Outlet />,
     errorElement: <RouteErrorBoundary />,
     children: [
-      ...(import.meta.env.DEV ? [{ path: '/dev/launchpad', element: <PortalLaunchpadScreen /> }] : []),
       { path: '/splash',         element: <SplashScreen /> },
       { path: '/welcome',        element: <WelcomeScreen /> },
       { path: '/auth/register',  element: <RegisterScreen /> },
@@ -172,7 +163,6 @@ export default function App() {
       <TenantLoader />
       <RouterProvider router={router} />
       <DuplicatePaymentModal />
-      <DevModeToggle />
     </Suspense>
   )
 }

@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom'
 
 import { BalanceCard } from '@/components/feature/BalanceCard'
 import { ServiceGrid } from '@/components/feature/ServiceGrid'
+import { WalletPromoCard } from '@/components/feature/WalletPromoCard'
 import { TransactionItem, txIcon } from '@/components/feature/TransactionItem'
-//import { walletService } from '@/lib/services/wallet.service'
 import { TransactionDetailsBottomSheet } from '@/components/feature/TransactionDetailsBottomSheet'
 import { RepeatPaymentBottomSheet } from '@/components/feature/RepeatPaymentBottomSheet'
 import type { Transaction } from '@/types'
 import { useFavouritesStore } from '@/store/favourites.store'
+import { useAuthStore } from '@/store/auth.store'
 import { formatCurrency, formatDateShort } from '@/lib/utils'
 import { Badge, statusBadge } from '@/components/ui/Badge'
 import { HeartIcon as HeartSolid } from '@heroicons/react/24/solid'
@@ -22,9 +23,14 @@ export function HomeScreen() {
   const [repeatTx, setRepeatTx] = useState<Transaction | null>(null)
   const { favourites, removeFavourite, fetchFavourites } = useFavouritesStore()
   const { data: analyticsData, fetchAnalytics } = useAnalyticsStore()
+  const { kycCompleted, user } = useAuthStore()
+
+  // Show wallet promo if user hasn't completed KYC (i.e., hasn't opened a wallet yet)
+  // KYC is required for wallet creation — this is the primary funnel.
+  const showWalletPromo = !kycCompleted
 
   useEffect(() => {
-    fetchAnalytics('7d') // Fetch 7-day trend for home screen
+    fetchAnalytics('7d')
     fetchFavourites()
   }, [fetchAnalytics, fetchFavourites])
 
@@ -36,7 +42,8 @@ export function HomeScreen() {
         <BalanceCard />
       </div>
 
-
+      {/* Wallet promo — primary funnel to KYC + wallet creation */}
+      {showWalletPromo && <WalletPromoCard />}
 
       {/* Quick services */}
       <section className="px-4 mt-5 animate-slide-up">

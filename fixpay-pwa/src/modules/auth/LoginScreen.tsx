@@ -32,17 +32,14 @@ export function LoginScreen() {
   const onSubmit = async (data: FormData) => {
     setServerError('')
     try {
-      // Sanctum SPA authentication requires fetching the CSRF cookie first.
-      await api.get('/sanctum/csrf-cookie', { baseURL: import.meta.env.VITE_API_URL?.replace('/api', '') })
+      // Sanctum CSRF cookie — direct fetch to /sanctum (Vite proxy forwards to Laravel)
+      await fetch('/sanctum/csrf-cookie', { credentials: 'include' })
       const res = await api.post('/auth/login', {
         identifier: data.identifier,
         password: data.password,
       })
-      // Backend returns { access_token, token_type, expires_in, user }
-      // MSW mocks may return camelCase — support both
       const raw = res.data.data ?? res.data
       const accessToken: string = raw.access_token ?? raw.accessToken
-      // Normalize snake_case backend fields → camelCase User type
       const rawUser = raw.user
       const user: User = {
         id:        rawUser.id,
@@ -57,15 +54,11 @@ export function LoginScreen() {
       setToken(accessToken)
       setUser(user)
 
-      // Derive auth flags from server-authoritative values — never trust stale localStorage.
       const hasPinFromServer: boolean = raw.has_pin === true
       const isKycVerified = user.kycStatus === 'verified'
       setPinCreated(hasPinFromServer)
       setKycCompleted(isKycVerified)
 
-      // Store the server-resolved tenant slug (from user.tenant_id FK).
-      // This is authoritative — the client cannot forge it.
-      // null means the user is a platform user with no tenant.
       const tenantSlug: string | null = raw.tenant_slug ?? null
       if (tenantSlug) {
         localStorage.setItem('tenant_slug', tenantSlug)
@@ -74,10 +67,8 @@ export function LoginScreen() {
       }
       localStorage.setItem('fixpay_onboarded', '1')
 
-      // Route based on what the user still needs to complete
-      if (hasPinFromServer && isKycVerified) navigate('/home', { replace: true })
-      else if (!hasPinFromServer)            navigate('/auth/pin', { replace: true })
-      else                                   navigate('/kyc', { replace: true })
+      if (hasPinFromServer) navigate('/home', { replace: true })
+      else                   navigate('/auth/pin', { replace: true })
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
       setServerError(msg ?? 'Invalid credentials. Try again.')
@@ -93,38 +84,22 @@ export function LoginScreen() {
             Email verified! Sign in to continue.
           </p>
         )}
-        <p className="text-[15px] text-gray-500 mb-6">Enter your phone or email to continue.</p>
-        {/* Hidden honeypot fields: Chrome/Edge ignore autocomplete="off" on login forms
-            but will fill into the first matching hidden input instead of the real ones. */}
+        <p className="text-[13px] text-gray-500 mb-6">Enter your phone or email to continue.</p>
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" autoComplete="new-password">
           <input type="text" name="fakeusername" style={{ display: 'none' }} aria-hidden="true" tabIndex={-1} readOnly />
           <input type="password" name="fakepassword" style={{ display: 'none' }} aria-hidden="true" tabIndex={-1} readOnly />
-          <Input 
-            label="Phone or Email" 
-            type="text" 
-            placeholder="Enter phone or email"
-            autoComplete="new-password"
-            error={errors.identifier?.message} 
-            {...register('identifier')} 
-          />
-          <Input 
-            label="Password" 
-            type="password" 
-            placeholder="Enter password"
-            autoComplete="new-password"
-            error={errors.password?.message} 
-            {...register('password')} 
-          />
-          {serverError && <p className="text-[14px] text-ios-red text-center">{serverError}</p>}
+          <Input label="Phone or Email" type="text" placeholder="Enter phone or email"
+            autoComplete="new-password" error={errors.identifier?.message} {...register('identifier')} />
+          <Input label="Password" type="password" placeholder="Enter password"
+            autoComplete="new-password" error={errors.password?.message} {...register('password')} />
+          {serverError && <p className="text-[13px] text-ios-red text-center">{serverError}</p>}
           <Button type="submit" fullWidth loading={isSubmitting} className="mt-2">Sign In</Button>
         </form>
-
         <p className="text-center text-[13px] text-gray-400 mt-6">
-          Don&apos;t have an account?{' '}
+          Don't have an account?{' '}
           <button className="font-semibold" style={{ color: 'var(--brand-primary)' }} onClick={() => navigate('/auth/register')}>Create One</button>
         </p>
       </div>
-
     </div>
   )
 }

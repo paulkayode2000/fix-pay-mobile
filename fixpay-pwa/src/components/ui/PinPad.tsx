@@ -15,7 +15,7 @@ interface PinPadProps {
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del'] as const
 
-export function PinPad({ value, onChange, maxLength = 4, label, hint, error, disabled }: PinPadProps) {
+export function PinPad({ value, onChange, maxLength = 6, label, hint, error, disabled }: PinPadProps) {
   const submitted = useRef(false)
 
   const handleKey = useCallback((key: string) => {
@@ -39,27 +39,27 @@ export function PinPad({ value, onChange, maxLength = 4, label, hint, error, dis
   return (
     <div className="flex flex-col items-center gap-6 pb-safe">
       {/* Label */}
-      {label && <p className="text-[17px] font-semibold text-gray-900 text-center">{label}</p>}
+      {label && <p className="text-[15px] font-semibold text-gray-900 text-center">{label}</p>}
 
       {/* Dots */}
-      <div className="flex gap-4">
+      <div className="flex gap-3">
         {Array.from({ length: maxLength }).map((_, i) => (
           <div key={i} className={cn(
-            'w-4 h-4 rounded-full border-2 transition-all duration-150',
+            'w-3.5 h-3.5 rounded-full border-2 transition-all duration-150',
             i < value.length ? 'border-transparent scale-110' : 'border-gray-300 scale-100'
           )} style={i < value.length ? { background: 'var(--brand-primary)' } : undefined} />
         ))}
       </div>
 
       {/* Error / hint */}
-      {error && <p className="text-[14px] text-ios-red text-center -mt-2">{error}</p>}
-      {hint && !error && <p className="text-[13px] text-gray-400 text-center -mt-2">{hint}</p>}
+      {error && <p className="text-[12px] text-ios-red text-center -mt-2">{error}</p>}
+      {hint && !error && <p className="text-[11px] text-gray-400 text-center -mt-2">{hint}</p>}
 
       {/* Keypad */}
       {disabled ? (
         <div className="flex flex-col items-center justify-center w-full" style={{ height: '292px' }}>
           <Spinner size="lg" />
-          <p className="text-[15px] text-gray-500 mt-6 font-medium animate-pulse">Processing...</p>
+          <p className="text-[13px] text-gray-500 mt-6 font-medium animate-pulse">Processing...</p>
         </div>
       ) : (
         <div className="grid grid-cols-3 gap-3 w-full px-8">
@@ -69,13 +69,13 @@ export function PinPad({ value, onChange, maxLength = 4, label, hint, error, dis
               return (
                 <button key={idx} onPointerDown={() => handleKey('del')} disabled={disabled || value.length === 0}
                   className="h-16 rounded-[16px] flex items-center justify-center pressable active:bg-gray-200 transition-colors disabled:opacity-30">
-                  <BackspaceIcon className="w-6 h-6 text-gray-700" />
+                  <BackspaceIcon className="w-5 h-5 text-gray-700" />
                 </button>
               )
             }
             return (
               <button key={idx} onPointerDown={() => handleKey(key)} disabled={disabled}
-                className="h-16 bg-white rounded-[16px] flex items-center justify-center text-[24px] font-medium text-gray-900 shadow-sm pressable active:bg-gray-100 transition-colors disabled:opacity-30">
+                className="h-16 bg-white rounded-[16px] flex items-center justify-center text-[22px] font-medium text-gray-900 shadow-sm pressable active:bg-gray-100 transition-colors disabled:opacity-30">
                 {key}
               </button>
             )

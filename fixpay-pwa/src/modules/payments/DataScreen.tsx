@@ -120,7 +120,7 @@ export function DataScreen() {
 
   const handlePinChange = async (val: string) => {
     setPin(val); setPinError('')
-    if (val.length < 4 || !pending || isProcessing) return
+    if (val.length < 6 || !pending || isProcessing) return
     startProcessing()
     try {
       await authService.verifyPin(val)

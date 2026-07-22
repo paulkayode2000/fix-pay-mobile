@@ -130,7 +130,7 @@ export function InsuranceScreen() {
 
   const handlePinChange = async (val: string) => {
     setPin(val); setPinError('')
-    if (val.length < 4 || !pending || submitting) return
+    if (val.length < 6 || !pending || submitting) return
     setSubmitting(true)
     try {
       await authService.verifyPin(val)

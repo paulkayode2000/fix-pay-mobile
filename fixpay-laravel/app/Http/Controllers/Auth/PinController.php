@@ -13,8 +13,8 @@ class PinController extends Controller
     public function set(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'pin'             => 'required|string|size:4|confirmed',
-            'pin_confirmation' => 'required|string|size:4',
+            'pin'              => 'required|string|size:6|confirmed',
+            'pin_confirmation' => 'required|string|size:6',
         ]);
 
         $user = $request->user();
@@ -27,7 +27,7 @@ class PinController extends Controller
     public function verify(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'pin' => 'required|string|size:4',
+            'pin' => 'required|string|size:6',
         ]);
 
         $user = $request->user();
@@ -43,9 +43,9 @@ class PinController extends Controller
     public function change(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'current_pin' => 'required|string|size:4',
-            'new_pin'     => 'required|string|size:4|confirmed',
-            'new_pin_confirmation' => 'required|string|size:4',
+            'current_pin'          => 'required|string|size:6',
+            'new_pin'              => 'required|string|size:6|confirmed',
+            'new_pin_confirmation' => 'required|string|size:6',
         ]);
 
         $user = $request->user();

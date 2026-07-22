@@ -38,8 +38,6 @@ export default defineConfig(({ command }) => ({
   plugins: [
     react(),
     tailwindcss(),
-    // VitePWA is only active during production builds — it registers a service
-    // worker that would interfere with MSW during development if left enabled.
     ...(command === 'build' ? [pwaPlugin] : []),
   ],
   resolve: {
@@ -48,9 +46,11 @@ export default defineConfig(({ command }) => ({
   server: {
     port: 5273,
     host: true,
+    // Proxy /api and /sanctum to Laravel backend (port 8001).
+    // This eliminates CORS — browser sees same-origin requests.
     proxy: {
-      '/api': { target: 'http://127.0.0.1:8000', changeOrigin: true },
-      '/tenant': { target: 'http://127.0.0.1:8000', changeOrigin: true },
+      '/api': { target: 'http://127.0.0.1:8001', changeOrigin: true },
+      '/sanctum': { target: 'http://127.0.0.1:8001', changeOrigin: true },
     },
   },
   optimizeDeps: {

@@ -10,7 +10,7 @@ type Step = 'create' | 'confirm'
 
 export function CreatePinScreen() {
   const navigate = useNavigate()
-  const { setPinCreated, kycCompleted } = useAuthStore()
+  const { setPinCreated } = useAuthStore()
   const [step, setStep] = useState<Step>('create')
   const [firstPin, setFirstPin] = useState('')
   const [pin, setPin] = useState('')
@@ -19,7 +19,7 @@ export function CreatePinScreen() {
 
   const handlePinChange = async (val: string) => {
     setPin(val); setError('')
-    if (val.length < 4) return
+    if (val.length < 6) return
 
     if (step === 'create') {
       setFirstPin(val)
@@ -38,7 +38,7 @@ export function CreatePinScreen() {
     try {
       await api.post('/auth/pin/set', { pin: val, pin_confirmation: val })
       setPinCreated(true)
-      navigate(kycCompleted ? '/home' : '/kyc', { replace: true })
+      navigate('/home', { replace: true })
     } catch {
       setError('Failed to save PIN. Try again.')
     } finally {
@@ -61,7 +61,7 @@ export function CreatePinScreen() {
           <PinPad
             value={pin}
             onChange={handlePinChange}
-            label={step === 'create' ? 'Create a 4-digit PIN' : 'Confirm your PIN'}
+            label={step === 'create' ? 'Create a 6-digit PIN' : 'Confirm your PIN'}
             hint={step === 'create' ? 'This PIN protects every transaction' : 'Re-enter your PIN to confirm'}
             error={error}
           />

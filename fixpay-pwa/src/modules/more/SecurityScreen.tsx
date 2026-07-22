@@ -72,10 +72,10 @@ function MenuRow({
         <Icon className="w-5 h-5 text-white" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[15px] font-medium text-gray-900 leading-tight">{label}</p>
-        {sub && <p className="text-[12px] text-gray-400 mt-0.5">{sub}</p>}
+        <p className="text-[14px] font-medium text-gray-900 leading-tight">{label}</p>
+        {sub && <p className="text-[11px] text-gray-400 mt-0.5">{sub}</p>}
       </div>
-      {right ?? (onPress && <ChevronRightIcon className="w-4 h-4 text-gray-300 shrink-0" />)}
+      {right ?? (onPress && <ChevronRightIcon className="w-3.5 h-3.5 text-gray-300 shrink-0" />)}
     </button>
   )
 }
@@ -104,7 +104,7 @@ function PinChangeSheet({
   const handlePin = async (val: string) => {
     setPin(val)
     setError('')
-    if (val.length < 4) return
+    if (val.length < 6) return
 
     if (flow === 'verify-current') {
       setLoading(true)
@@ -153,14 +153,14 @@ function PinChangeSheet({
   if (flow === 'success') {
     return (
       <div className="flex flex-col items-center justify-center pt-8 pb-4 gap-4 animate-scale-in">
-        <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
-          <CheckCircleIcon className="w-12 h-12 text-ios-green" />
+        <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
+          <CheckCircleIcon className="w-10 h-10 text-ios-green" />
         </div>
-        <p className="text-[20px] font-bold text-gray-900">PIN Updated</p>
-        <p className="text-[14px] text-gray-500 text-center px-6">Your transaction PIN has been changed successfully.</p>
+        <p className="text-[18px] font-bold text-gray-900">PIN Updated</p>
+        <p className="text-[13px] text-gray-500 text-center px-6">Your transaction PIN has been changed successfully.</p>
         <button
           onClick={onClose}
-          className="mt-2 h-12 px-10 rounded-[14px] text-[17px] font-semibold text-white pressable"
+          className="mt-2 h-12 px-10 rounded-[14px] text-[14px] font-semibold text-white pressable"
           style={{ background: 'var(--brand-primary)' }}
         >
           Done
@@ -199,7 +199,7 @@ function PinChangeSheet({
             {loading ? (
               <div className="flex flex-col items-center justify-center py-16 gap-4">
                 <Spinner size="lg" />
-                <p className="text-[14px] text-gray-400">
+                <p className="text-[13px] text-gray-400">
                   {flow === 'confirm-new' ? 'Saving new PIN…' : 'Verifying…'}
                 </p>
               </div>
@@ -208,7 +208,7 @@ function PinChangeSheet({
                 value={pin}
                 onChange={handlePin}
                 label={stepTitle[flow]}
-                hint={flow === 'set-new' ? "Choose a 4-digit PIN you'll remember" : undefined}
+                hint={flow === 'set-new' ? "Choose a 6-digit PIN you'll remember" : undefined}
                 error={error}
                 disabled={loading}
               />
@@ -238,27 +238,27 @@ export function SecurityScreen() {
       <div className="flex-1 overflow-y-auto no-scrollbar px-4 pt-4 pb-10 animate-slide-up">
 
         {/* ── Shield hero ── */}
-        <div className="bg-white rounded-[20px] p-5 mb-5 flex items-center gap-4">
-          <div className="w-14 h-14 rounded-[14px] bg-blue-50 flex items-center justify-center shrink-0">
-            <ShieldCheckIcon className="w-8 h-8 text-ios-blue" />
+        <div className="bg-white rounded-[16px] p-5 mb-5 flex items-center gap-4 border border-black/5">
+          <div className="w-12 h-12 rounded-[14px] bg-blue-50 flex items-center justify-center shrink-0">
+            <ShieldCheckIcon className="w-6 h-6 text-ios-blue" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[16px] font-bold text-gray-900">Your account is protected</p>
-            <p className="text-[13px] text-gray-500 mt-0.5">
+            <p className="text-[14px] font-bold text-gray-900">Your account is protected</p>
+            <p className="text-[12px] text-gray-500 mt-0.5">
               {user?.phone ?? user?.email ?? 'Manage your security settings below.'}
             </p>
-            <p className="text-[12px] text-gray-400 mt-1">Last login: {lastLogin}</p>
+            <p className="text-[11px] text-gray-400 mt-1">Last login: {lastLogin}</p>
           </div>
         </div>
 
         {/* ── PIN & Authentication ── */}
-        <SectionLabel>PIN &amp; Authentication</SectionLabel>
-        <div className="bg-white rounded-[20px] overflow-hidden mb-5">
+        <SectionLabel>PIN & Authentication</SectionLabel>
+        <div className="bg-white rounded-[16px] overflow-hidden mb-5 border border-black/5">
           <MenuRow
             icon={LockClosedIcon}
             iconBg="#007AFF"
             label="Transaction PIN"
-            sub="Change your 4-digit payment PIN"
+            sub="Change your 6-digit payment PIN"
             onPress={() => setShowPinSheet(true)}
           />
           <MenuRow
@@ -275,7 +275,7 @@ export function SecurityScreen() {
 
         {/* ── Notifications ── */}
         <SectionLabel>Security Alerts</SectionLabel>
-        <div className="bg-white rounded-[20px] overflow-hidden mb-5">
+        <div className="bg-white rounded-[16px] overflow-hidden mb-5 border border-black/5">
           <MenuRow
             icon={DevicePhoneMobileIcon}
             iconBg="#FF9500"
@@ -299,25 +299,25 @@ export function SecurityScreen() {
 
         {/* ── Account info ── */}
         <SectionLabel>Account</SectionLabel>
-        <div className="bg-white rounded-[20px] overflow-hidden mb-5">
+        <div className="bg-white rounded-[16px] overflow-hidden mb-5 border border-black/5">
           <div className="flex items-center justify-between px-4 py-3 border-b border-black/[0.06]">
-            <span className="text-[14px] text-gray-500">Phone</span>
-            <span className="text-[14px] font-semibold text-gray-900">{user?.phone ?? '—'}</span>
+            <span className="text-[13px] text-gray-500">Phone</span>
+            <span className="text-[13px] font-semibold text-gray-900">{user?.phone ?? '—'}</span>
           </div>
           <div className="flex items-center justify-between px-4 py-3 border-b border-black/[0.06]">
-            <span className="text-[14px] text-gray-500">KYC Tier</span>
-            <span className="text-[14px] font-semibold text-gray-900">Tier {user?.tier ?? 1}</span>
+            <span className="text-[13px] text-gray-500">KYC Tier</span>
+            <span className="text-[13px] font-semibold text-gray-900">Tier {user?.tier ?? 1}</span>
           </div>
           <div className="flex items-center justify-between px-4 py-3">
-            <span className="text-[14px] text-gray-500">Account Status</span>
-            <span className="text-[14px] font-semibold text-ios-green">Active</span>
+            <span className="text-[13px] text-gray-500">Account Status</span>
+            <span className="text-[13px] font-semibold text-ios-green">Active</span>
           </div>
         </div>
 
         {/* ── Tips ── */}
         <div className="bg-blue-50 rounded-[16px] p-4 flex gap-3">
-          <ShieldCheckIcon className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
-          <p className="text-[13px] text-blue-700 leading-relaxed">
+          <ShieldCheckIcon className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+          <p className="text-[12px] text-blue-700 leading-relaxed">
             <strong>Security tip:</strong> FixPay will <strong>never</strong> ask for your PIN, OTP, or password via phone or email. Do not share these with anyone.
           </p>
         </div>
@@ -344,12 +344,12 @@ export function SecurityScreen() {
             </div>
             {/* Title */}
             <div className="flex items-center justify-between px-5 pb-3 border-b border-black/[0.06]">
-              <h3 className="text-[17px] font-semibold text-gray-900">Change Transaction PIN</h3>
+              <h3 className="text-[15px] font-semibold text-gray-900">Change Transaction PIN</h3>
               <button
                 onClick={() => setShowPinSheet(false)}
                 className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center pressable"
               >
-                <span className="text-[14px] text-gray-500 font-medium">✕</span>
+                <span className="text-[13px] text-gray-500 font-medium">✕</span>
               </button>
             </div>
             <div className="px-5 pt-5">
