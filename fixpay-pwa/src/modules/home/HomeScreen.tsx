@@ -74,7 +74,7 @@ export function HomeScreen() {
                     className="absolute top-3 right-3 p-1 rounded-full bg-red-50 hover:bg-red-100 z-10"
                     onClick={(e) => { e.stopPropagation(); removeFavourite(tx.id) }}
                   >
-                    <HeartSolid className="w-4 h-4 text-red-500" />
+                    <HeartSolid className="w-4 h-4 text-brand" />
                   </button>
                   <div className="flex items-start gap-3 mb-4 pr-6">
                     {txIcon(tx)}

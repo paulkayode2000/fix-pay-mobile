@@ -216,8 +216,8 @@ export function ReceiptScreen() {
           <ShareIcon className="w-4 h-4" /> Share Receipt
         </Button>
         {canBeSaved && (
-          <Button variant="outline" fullWidth onClick={toggleFavourite} disabled={favDisabled} className={isFav ? "text-red-500 border-red-200 bg-red-50" : ""}>
-            {isFav ? <HeartSolid className="w-4 h-4 text-red-500" /> : <HeartOutline className="w-4 h-4" />} 
+          <Button variant="outline" fullWidth onClick={toggleFavourite} disabled={favDisabled} className={isFav ? "text-brand border-red-200 bg-red-50" : ""}>
+            {isFav ? <HeartSolid className="w-4 h-4 text-brand" /> : <HeartOutline className="w-4 h-4" />} 
             {isFav ? 'Saved to Favourites' : 'Save to Favourites'}
           </Button>
         )}

@@ -206,7 +206,7 @@ export function ElectricityScreen() {
           {verifyError && <p className="text-ios-red text-[13px]">{verifyError}</p>}
           {verifyResult && (
             <div className="bg-green-50 rounded-[14px] px-4 py-3 flex gap-3 items-start">
-              <CheckCircleIcon className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
+              <CheckCircleIcon className="w-5 h-5 text-brand shrink-0 mt-0.5" />
               <div>
                 <p className="font-semibold text-gray-900">{verifyResult.customerName}</p>
                 {verifyResult.address && <p className="text-[12px] text-gray-500">{verifyResult.address}</p>}

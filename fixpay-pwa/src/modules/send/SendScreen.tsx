@@ -178,7 +178,7 @@ export function SendScreen() {
           {enquiryError && <p className="text-ios-red text-[12px]">{enquiryError}</p>}
           {nameEnquiry && (
             <div className="bg-green-50 rounded-[14px] px-4 py-3 flex gap-3 items-center">
-              <CheckCircleIcon className="w-4 h-4 text-green-600 shrink-0" />
+              <CheckCircleIcon className="w-4 h-4 text-brand shrink-0" />
               <p className="font-bold text-[14px] text-gray-900">{nameEnquiry.accountName}</p>
             </div>
           )}
