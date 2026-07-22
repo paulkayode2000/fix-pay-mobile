@@ -67,11 +67,11 @@ function DevEmailPanelInner() {
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-black/5 bg-gray-50">
             <h3 className="text-[12px] font-bold text-gray-900 flex items-center gap-1.5">
-              <EnvelopeIcon className="w-3.5 h-3.5 text-ios-blue" />
+              <EnvelopeIcon className="w-3.5 h-3.5 text-brand" />
               Dev Email Panel
             </h3>
             <button onClick={() => setOpen(false)} className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center pressable">
-              <XMarkIcon className="w-3 h-3 text-gray-500" />
+              <XMarkIcon className="w-3 h-3 text-brand" />
             </button>
           </div>
 

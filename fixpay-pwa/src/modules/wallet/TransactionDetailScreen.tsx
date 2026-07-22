@@ -71,7 +71,7 @@ function Row({ label, value, mono, copyable }: {
         </span>
         {copyable && (
           <button onClick={copy} className="shrink-0 w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center pressable">
-            <DocumentDuplicateIcon className="w-3.5 h-3.5 text-gray-500" />
+            <DocumentDuplicateIcon className="w-3.5 h-3.5 text-brand" />
           </button>
         )}
       </div>
@@ -190,7 +190,7 @@ export function TransactionDetailScreen() {
             className="mt-2"
             onClick={() => navigate('/more/disputes', { state: { prefillTxId: tx.id } })}
           >
-            <ExclamationTriangleIcon className="w-5 h-5 text-gray-500" />
+            <ExclamationTriangleIcon className="w-5 h-5 text-brand" />
             Raise a Dispute
           </Button>
         )}

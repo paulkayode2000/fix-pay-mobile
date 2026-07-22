@@ -89,7 +89,7 @@ export function PendingScreen() {
             {errorMsg ? (
               <ExclamationTriangleIcon className="w-12 h-12 text-ios-red" />
             ) : (
-              <ClockIcon className="w-12 h-12 text-ios-blue" style={{ color: 'var(--brand-primary)' }} />
+              <ClockIcon className="w-12 h-12 text-brand" style={{ color: 'var(--brand-primary)' }} />
             )}
           </div>
           <h1 className="text-[22px] font-black text-gray-900 text-center">

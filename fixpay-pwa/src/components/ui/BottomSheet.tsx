@@ -54,7 +54,7 @@ export function BottomSheet({ open, onClose, title, children, className, dismiss
                 <h3 className="text-[17px] font-semibold text-gray-900">{title}</h3>
                 {dismissible && (
                   <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center pressable">
-                    <XMarkIcon className="w-4 h-4 text-gray-500" />
+                    <XMarkIcon className="w-4 h-4 text-brand" />
                   </button>
                 )}
               </div>

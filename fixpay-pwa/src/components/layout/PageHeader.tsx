@@ -18,7 +18,7 @@ export function PageHeader({ title, onBack, right, className, transparent }: Pag
     <header className={cn('sticky top-0 z-20 shrink-0 flex items-center gap-2 h-14 px-4', transparent ? 'bg-transparent' : 'bg-[#F2F2F7]', className)}>
       {handleBack ? (
         <button onClick={handleBack} className="w-9 h-9 flex items-center justify-center rounded-full bg-white/70 pressable -ml-1 shrink-0">
-          <ChevronLeftIcon className="w-5 h-5 text-gray-700 stroke-[2.5]" />
+          <ChevronLeftIcon className="w-5 h-5 text-brand stroke-[2.5]" />
         </button>
       ) : (
         <div className="w-9 shrink-0" />

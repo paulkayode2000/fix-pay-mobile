@@ -26,7 +26,7 @@ export function FundWalletScreen() {
         <div className="flex-1 flex flex-col items-center justify-center px-6 pb-12 animate-slide-up">
           <div className="bg-white rounded-[24px] p-8 flex flex-col items-center text-center shadow-sm border border-black/5 max-w-sm w-full">
             <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-4">
-              <ShieldExclamationIcon className="w-8 h-8 text-ios-blue" />
+              <ShieldExclamationIcon className="w-8 h-8 text-brand" />
             </div>
             <h2 className="text-[18px] font-bold text-gray-900 mb-2">Verification Required</h2>
             <p className="text-[13px] text-gray-500 leading-relaxed mb-6">
@@ -78,7 +78,7 @@ export function FundWalletScreen() {
           <div className="flex items-center gap-3 mt-1">
             <p className="text-[28px] font-black text-gray-900 tracking-widest">{acct}</p>
             <button onClick={copy} className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center pressable">
-              <DocumentDuplicateIcon className="w-4 h-4 text-gray-500" />
+              <DocumentDuplicateIcon className="w-4 h-4 text-brand" />
             </button>
           </div>
           <p className="text-[12px] text-gray-400 mt-3">Account Name: <strong className="text-gray-700">FixPay / John Adeyemi</strong></p>

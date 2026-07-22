@@ -69,7 +69,7 @@ export function PinPad({ value, onChange, maxLength = 6, label, hint, error, dis
               return (
                 <button key={idx} onPointerDown={() => handleKey('del')} disabled={disabled || value.length === 0}
                   className="h-16 rounded-[16px] flex items-center justify-center pressable active:bg-gray-200 transition-colors disabled:opacity-30">
-                  <BackspaceIcon className="w-5 h-5 text-gray-700" />
+                  <BackspaceIcon className="w-5 h-5 text-brand" />
                 </button>
               )
             }

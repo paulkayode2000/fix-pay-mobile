@@ -20,7 +20,7 @@ function MenuItem({ icon: Icon, label, sub, onClick, variant = 'default', last }
         <p className={cn('text-[14px] font-medium', variant === 'danger' ? 'text-ios-red' : 'text-gray-900')}>{label}</p>
         {sub && <p className="text-[11px] text-gray-400 mt-0.5">{sub}</p>}
       </div>
-      <ChevronRightIcon className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+      <ChevronRightIcon className="w-3.5 h-3.5 text-brand shrink-0" />
     </button>
   )
 }

@@ -75,7 +75,7 @@ function MenuRow({
         <p className="text-[14px] font-medium text-gray-900 leading-tight">{label}</p>
         {sub && <p className="text-[11px] text-gray-400 mt-0.5">{sub}</p>}
       </div>
-      {right ?? (onPress && <ChevronRightIcon className="w-3.5 h-3.5 text-gray-300 shrink-0" />)}
+      {right ?? (onPress && <ChevronRightIcon className="w-3.5 h-3.5 text-brand shrink-0" />)}
     </button>
   )
 }
@@ -240,7 +240,7 @@ export function SecurityScreen() {
         {/* ── Shield hero ── */}
         <div className="bg-white rounded-[16px] p-5 mb-5 flex items-center gap-4 border border-black/5">
           <div className="w-12 h-12 rounded-[14px] bg-blue-50 flex items-center justify-center shrink-0">
-            <ShieldCheckIcon className="w-6 h-6 text-ios-blue" />
+            <ShieldCheckIcon className="w-6 h-6 text-brand" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[14px] font-bold text-gray-900">Your account is protected</p>
@@ -316,7 +316,7 @@ export function SecurityScreen() {
 
         {/* ── Tips ── */}
         <div className="bg-blue-50 rounded-[16px] p-4 flex gap-3">
-          <ShieldCheckIcon className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+          <ShieldCheckIcon className="w-4 h-4 text-brand shrink-0 mt-0.5" />
           <p className="text-[12px] text-blue-700 leading-relaxed">
             <strong>Security tip:</strong> FixPay will <strong>never</strong> ask for your PIN, OTP, or password via phone or email. Do not share these with anyone.
           </p>

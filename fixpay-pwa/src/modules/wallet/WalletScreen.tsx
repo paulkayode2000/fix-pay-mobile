@@ -42,7 +42,7 @@ export function WalletScreen() {
         <div className="flex-1 flex flex-col items-center justify-center px-6 pb-12 animate-slide-up">
           <div className="bg-white rounded-[24px] p-8 flex flex-col items-center text-center shadow-sm border border-black/5 max-w-sm w-full">
             <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-4">
-              <ShieldExclamationIcon className="w-8 h-8 text-ios-blue" />
+              <ShieldExclamationIcon className="w-8 h-8 text-brand" />
             </div>
             <h2 className="text-[18px] font-bold text-gray-900 mb-2">Verification Required</h2>
             <p className="text-[13px] text-gray-500 leading-relaxed mb-6">

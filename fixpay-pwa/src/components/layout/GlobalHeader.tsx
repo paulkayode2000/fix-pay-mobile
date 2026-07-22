@@ -25,7 +25,7 @@ export function GlobalHeader() {
           onClick={() => setShowNotifications(true)}
           className="relative w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm pressable shrink-0"
         >
-          <BellIcon className="w-5 h-5 text-gray-500" />
+          <BellIcon className="w-5 h-5 text-brand" />
           {hasNotifications && (
             <span className="absolute top-2 right-2 w-2 h-2 bg-ios-red rounded-full border border-white" />
           )}

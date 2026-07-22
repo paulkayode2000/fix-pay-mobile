@@ -125,7 +125,7 @@ export function SendScreen() {
         {/* Tier upgrade prompt for non-verified users */}
         {showUpgradePrompt && (
           <div className="bg-blue-50 rounded-[14px] p-4 mb-4 flex gap-3 items-start border border-blue-100">
-            <ShieldExclamationIcon className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+            <ShieldExclamationIcon className="w-4 h-4 text-brand shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
               <p className="text-[12px] font-semibold text-blue-800">
                 {userTier === 1 ? 'Tier 1 — Limited Transfers' : 'Tier 2 — Verified User'}
@@ -158,7 +158,7 @@ export function SendScreen() {
               {banksLoading ? <Spinner size="sm" /> : (
                 <>
                   <span className={selectedBank ? 'text-[14px] text-gray-900' : 'text-[14px] text-gray-400'}>{selectedBank?.bankName ?? 'Select Bank'}</span>
-                  <MagnifyingGlassIcon className="w-4 h-4 text-gray-400" />
+                  <MagnifyingGlassIcon className="w-4 h-4 text-brand" />
                 </>
               )}
             </button>
