@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider, Navigate, Outlet, useLocation } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-router-dom'
 import { lazy, Suspense, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
@@ -9,6 +9,7 @@ import type { TenantConfig, ApiResponse } from '@/types'
 // Layout (eager — always rendered, tiny)
 import { AppShell } from '@/components/layout/AppShell'
 import { RouteErrorBoundary } from '@/components/layout/RouteErrorBoundary'
+import { SessionExpiryHandler } from '@/components/layout/SessionExpiryHandler'
 import { DuplicatePaymentModal } from '@/components/feature/DuplicatePaymentModal'
 
 // Auth
@@ -59,7 +60,6 @@ const AnalyticsScreen     = lazy(() => import('@/modules/more/AnalyticsScreen').
 
 function RequireAuth() {
   const { isAuthenticated, pinCreated, _hasHydrated } = useAuthStore()
-  const { pathname } = useLocation()
 
   // Block all routing decisions until Zustand has rehydrated from localStorage.
   if (!_hasHydrated) return null
@@ -101,7 +101,12 @@ function TenantLoader() {
 
 const router = createBrowserRouter([
   {
-    element: <Outlet />,
+    element: (
+      <>
+        <SessionExpiryHandler />
+        <Outlet />
+      </>
+    ),
     errorElement: <RouteErrorBoundary />,
     children: [
       { path: '/splash',         element: <SplashScreen /> },

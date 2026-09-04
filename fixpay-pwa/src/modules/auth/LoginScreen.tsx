@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { api } from '@/lib/api'
+import { IS_NATIVE } from '@/lib/platform'
 import { useAuthStore } from '@/store/auth.store'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Input } from '@/components/ui/Input'
@@ -33,7 +34,11 @@ export function LoginScreen() {
     setServerError('')
     try {
       // Sanctum SPA authentication requires fetching the CSRF cookie first.
-      await api.get('/sanctum/csrf-cookie', { baseURL: import.meta.env.VITE_API_URL?.replace('/api', '') })
+      // The native (Capacitor) build authenticates with the Sanctum bearer
+      // token returned by /auth/login, so the cookie handshake is skipped.
+      if (!IS_NATIVE) {
+        await api.get('/sanctum/csrf-cookie', { baseURL: import.meta.env.VITE_API_URL?.replace('/api', '') })
+      }
       const res = await api.post('/auth/login', {
         identifier: data.identifier,
         password: data.password,

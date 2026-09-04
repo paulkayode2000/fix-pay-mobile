@@ -25,6 +25,9 @@ return [
         'http://129.153.42.30',   // OCI IP (testing)
         'http://localhost',        // local dev
         'http://localhost:5173',   // Vite dev server
+        // Native (Capacitor) app — the WebView requests the API cross-origin.
+        'capacitor://localhost',  // iOS WKWebView origin
+        'https://localhost',      // Android WebView origin (androidScheme: 'https')
     ],
 
     // Patterns must be valid PHP regex strings. Leave empty when using allowed_origins.

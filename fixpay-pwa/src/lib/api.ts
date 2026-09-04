@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { IS_NATIVE, SESSION_EXPIRED_EVENT } from '@/lib/platform'
 import { useAuthStore } from '@/store/auth.store'
 import { purgeDbKey } from '@/lib/crypto'
 import { clearTransactions } from '@/lib/db'
@@ -89,7 +90,13 @@ api.interceptors.response.use(
       try {
         await serverLogout()
       } finally {
-        if (!window.location.pathname.startsWith('/auth')) {
+        const onAuthPage = window.location.pathname.startsWith('/auth')
+        if (IS_NATIVE) {
+          // Inside the Capacitor WebView a raw location navigation to
+          // '/auth/login' can hit the local asset server without an SPA
+          // fallback — route back through React Router instead.
+          if (!onAuthPage) window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT))
+        } else if (!onAuthPage) {
           window.location.href = '/auth/login'
         }
       }

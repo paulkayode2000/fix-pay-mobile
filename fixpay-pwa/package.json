@@ -8,6 +8,7 @@
     "build": "vite build",
     "build:mock": "vite build --mode mock",
     "build:e2e": "vite build --mode e2e",
+    "build:native": "vite build --mode native",
     "lint": "eslint .",
     "preview": "vite preview"
   },

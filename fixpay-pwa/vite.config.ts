@@ -36,12 +36,17 @@ const pwaPlugin = VitePWA({
 
 const backendTarget = process.env.VITE_API_PROXY_TARGET || 'http://127.0.0.1:8000'
 
-export default defineConfig(({ command }) => ({
+export default defineConfig(({ command, mode }) => ({
   plugins: [
     react(),
     tailwindcss(),
-    ...(command === 'build' ? [pwaPlugin] : []),
+    // The native (Capacitor) build must NOT ship a service worker — Workbox
+    // caching is meaningless inside an installed app and can serve stale assets.
+    ...(command === 'build' && mode !== 'native' ? [pwaPlugin] : []),
   ],
+  // Native-specific env (.env.native) lives in the ../fixpay-native wrapper
+  // folder, so the PWA's own production/mock/e2e env files stay untouched.
+  envDir: mode === 'native' ? '../fixpay-native' : undefined,
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') },
   },
