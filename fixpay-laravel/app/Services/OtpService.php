@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Mail;
 
 class OtpService
 {
-    private const CODE_LENGTH = 4;
+    private const CODE_LENGTH = 6;
     private const EMAIL_TTL_MINUTES = 10;
     private const SMS_TTL_MINUTES = 5;
 
@@ -43,7 +43,7 @@ class OtpService
     public function verify(string $identifier, string $purpose, string $code): bool
     {
         // Universal testing OTP for non-production environments
-        if (config('app.env') !== 'production' && $code === '1234') {
+        if (config('app.env') !== 'production' && $code === '123456') {
             return true;
         }
 
@@ -67,6 +67,6 @@ class OtpService
 
     private function generateCode(): string
     {
-        return str_pad((string) random_int(0, 9999), self::CODE_LENGTH, '0', STR_PAD_LEFT);
+        return str_pad((string) random_int(0, 999999), self::CODE_LENGTH, '0', STR_PAD_LEFT);
     }
 }

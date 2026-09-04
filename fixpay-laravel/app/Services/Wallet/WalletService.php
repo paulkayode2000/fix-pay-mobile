@@ -5,6 +5,7 @@ namespace App\Services\Wallet;
 use App\Models\AppUser;
 use App\Models\LedgerEntry;
 use App\Models\Wallet;
+use App\Services\NinePsb\NinePsbWalletProvider;
 use App\Services\Providus\ProvidusVirtualAccountAdapter;
 use Illuminate\Support\Facades\DB;
 
@@ -12,8 +13,12 @@ class WalletService
 {
     public function __construct(
         private readonly ProvidusVirtualAccountAdapter $virtualAccount,
+        private readonly ?NinePsbWalletProvider $ninePsbProvider = null,
     ) {}
 
+    /**
+     * Create a wallet with the default provider (Providus).
+     */
     public function createWallet(AppUser $user): Wallet
     {
         return DB::transaction(function () use ($user) {
@@ -41,10 +46,56 @@ class WalletService
                 'ledger_balance_kobo' => 0,
                 'currency' => 'NGN',
                 'status' => 'ACTIVE',
+                'wallet_provider' => 'providus',
                 'virtual_account_number' => $vaData['account_number'],
                 'virtual_account_bank' => $vaData['bank'],
                 'virtual_account_bank_code' => $vaData['bank_code'],
                 'virtual_account_reference' => $vaData['reference'],
+            ]);
+        });
+    }
+
+    /**
+     * Create a wallet using 9PSB WAAS API.
+     * Requires BVN or NIN per 9PSB spec.
+     */
+    public function createNinePsbWallet(AppUser $user, ?string $bvn = null, ?string $nin = null, ?string $ninUserId = null): Wallet
+    {
+        if (!$this->ninePsbProvider) {
+            throw new \RuntimeException('9PSB wallet provider is not configured.');
+        }
+
+        $accountName = "{$user->first_name} {$user->last_name}";
+
+        $vaData = $this->ninePsbProvider->createAccount(
+            accountName: $accountName,
+            bvn: $bvn,
+            nin: $nin,
+            ninUserId: $ninUserId,
+            user: $user,
+        );
+
+        return DB::transaction(function () use ($user, $vaData) {
+            return Wallet::create([
+                'user_id' => $user->id,
+                'tenant_id' => $user->tenant_id,
+                'balance_kobo' => 0,
+                'ledger_balance_kobo' => 0,
+                'currency' => 'NGN',
+                'status' => 'ACTIVE',
+                'wallet_provider' => 'ninepsb',
+                'virtual_account_number' => $vaData['account_number'],
+                'virtual_account_bank' => $vaData['bank'],
+                'virtual_account_bank_code' => $vaData['bank_code'],
+                'virtual_account_reference' => $vaData['reference'],
+                'ninepsb_account_number' => $vaData['account_number'],
+                'ninepsb_customer_id' => $vaData['customer_id'],
+                'ninepsb_order_ref' => $vaData['order_ref'],
+                'ninepsb_tier' => '1',
+                'ninepsb_metadata' => [
+                    'full_name' => $vaData['full_name'],
+                    'raw_response' => $vaData['raw'] ?? null,
+                ],
             ]);
         });
     }

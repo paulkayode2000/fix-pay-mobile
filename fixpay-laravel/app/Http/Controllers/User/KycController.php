@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\KycVerification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 
 class KycController extends Controller
@@ -38,7 +39,8 @@ class KycController extends Controller
         $record = KycVerification::create([
             'user_id' => $user->id,
             'type' => 'BVN',
-            'identifier' => Hash::make($data['bvn']), // store hashed
+            'identifier' => Hash::make($data['bvn']), // store hashed for lookup
+            'encrypted_identifier' => Crypt::encryptString($data['bvn']), // encrypted for wallet creation
             'provider' => $this->kyc->getProviderName(),
             'verification_status' => 'PENDING',
         ]);
@@ -59,7 +61,13 @@ class KycController extends Controller
             ]);
 
             if ($status === 'VERIFIED' && $user->kyc_status === 'UNVERIFIED') {
-                $user->update(['kyc_status' => 'PENDING']);
+                $user->update([
+                    'kyc_status' => 'PENDING',
+                    'date_of_birth' => $data['dob'] ?? null,
+                ]);
+            } elseif ($status === 'VERIFIED') {
+                // Still persist DOB even if user was already PENDING
+                $user->update(['date_of_birth' => $data['dob'] ?? null]);
             }
 
             return response()->json([
@@ -90,6 +98,7 @@ class KycController extends Controller
             'user_id' => $user->id,
             'type' => 'NIN',
             'identifier' => Hash::make($data['nin']),
+            'encrypted_identifier' => Crypt::encryptString($data['nin']), // encrypted for wallet creation
             'provider' => $this->kyc->getProviderName(),
             'verification_status' => 'PENDING',
         ]);
@@ -210,7 +219,17 @@ class KycController extends Controller
         $user = $request->user();
         $verifications = KycVerification::where('user_id', $user->id)->get();
 
-        return response()->json([
+        // Determine if user is ready for 9PSB wallet creation
+        $hasBvn = $verifications->contains(fn ($v) => $v->type === 'BVN' && $v->verification_status === 'VERIFIED');
+        $hasNin = $verifications->contains(fn ($v) => $v->type === 'NIN' && $v->verification_status === 'VERIFIED');
+
+        $hasNinePsbWallet = \App\Models\Wallet::where('user_id', $user->id)
+            ->where('wallet_provider', 'ninepsb')
+            ->exists();
+
+        $readyForNinePsb = ($hasBvn || $hasNin) && !$hasNinePsbWallet;
+
+        $response = [
             'kyc_status' => $user->kyc_status,
             'tier' => $user->tier,
             'verifications' => $verifications->map(fn ($v) => [
@@ -219,6 +238,24 @@ class KycController extends Controller
                 'provider' => $v->provider,
                 'verified_at' => $v->verified_at,
             ]),
-        ]);
+        ];
+
+        // Add 9PSB readiness indicators
+        if ($readyForNinePsb) {
+            $response['ready_for_ninepsb'] = true;
+            $response['next_action'] = 'accept_terms';
+            $response['next_action_label'] = 'Review & Accept 9PSB Terms';
+            $response['next_action_route'] = 'GET /wallet/ninepsb/terms';
+        } elseif ($hasNinePsbWallet) {
+            $response['ready_for_ninepsb'] = false;
+            $response['wallet_status'] = 'active';
+        } else {
+            $response['ready_for_ninepsb'] = false;
+            $response['next_action'] = 'verify_identity';
+            $response['next_action_label'] = 'Verify BVN or NIN';
+            $response['next_action_route'] = 'POST /kyc/bvn';
+        }
+
+        return response()->json($response);
     }
 }

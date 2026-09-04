@@ -32,11 +32,22 @@ class PinController extends Controller
 
         $user = $request->user();
 
-        if (! $user->pin_hash || ! Hash::check($data['pin'], $user->pin_hash)) {
+        if (!$user->pin_hash) {
+            return response()->json(['message' => 'PIN not set. Create a PIN first.'], 422);
+        }
+
+        if (!Hash::check($data['pin'], $user->pin_hash)) {
             return response()->json(['message' => 'Invalid PIN.'], 422);
         }
 
-        return response()->json(['message' => 'PIN verified.']);
+        // Record PIN confirmation for subsequent debit operations
+        $token = \App\Http\Middleware\EnsurePinConfirmed::confirm($user->id);
+
+        return response()->json([
+            'message' => 'PIN verified.',
+            'pin_token' => $token,            // Required as X-Pin-Token header on debit ops
+            'expires_in' => 300,              // 5 minutes
+        ]);
     }
 
     /** PUT /api/auth/pin/change */

@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Transfer;
 
 use App\Http\Controllers\Controller;
 use App\Models\Transfer;
+use App\Models\Wallet;
+use App\Services\Transfer\NinePsbTransferService;
 use App\Services\Transfer\TransferService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,6 +14,7 @@ class TransferController extends Controller
 {
     public function __construct(
         private readonly TransferService $transferService,
+        private readonly ?NinePsbTransferService $ninePsbTransfer = null,
     ) {}
 
     /** POST /api/transfers/bank */
@@ -124,5 +127,79 @@ class TransferController extends Controller
             ->paginate($request->input('per_page', 20));
 
         return response()->json($transfers);
+    }
+
+    /** GET /api/transfers/banks — get bank list (from 9PSB if available) */
+    public function banks(): JsonResponse
+    {
+        if ($this->ninePsbTransfer) {
+            try {
+                $banks = $this->ninePsbTransfer->getBanks();
+                return response()->json(['data' => $banks]);
+            } catch (\Throwable $e) {
+                // Fallback to hardcoded bank list
+            }
+        }
+
+        // Static fallback
+        $banks = [
+            ['bankName' => '9 Payment Service Bank', 'bankCode' => '120001', 'nibssBankCode' => '120001'],
+            ['bankName' => 'Access Bank', 'bankCode' => '044', 'nibssBankCode' => '044'],
+            ['bankName' => 'First Bank', 'bankCode' => '011', 'nibssBankCode' => '011'],
+            ['bankName' => 'Guaranty Trust Bank', 'bankCode' => '058', 'nibssBankCode' => '058'],
+            ['bankName' => 'United Bank for Africa', 'bankCode' => '033', 'nibssBankCode' => '033'],
+            ['bankName' => 'Zenith Bank', 'bankCode' => '057', 'nibssBankCode' => '057'],
+            ['bankName' => 'Wema Bank', 'bankCode' => '035', 'nibssBankCode' => '035'],
+            ['bankName' => 'Ecobank', 'bankCode' => '050', 'nibssBankCode' => '050'],
+            ['bankName' => 'Fidelity Bank', 'bankCode' => '070', 'nibssBankCode' => '070'],
+            ['bankName' => 'Sterling Bank', 'bankCode' => '232', 'nibssBankCode' => '232'],
+            ['bankName' => 'Union Bank', 'bankCode' => '032', 'nibssBankCode' => '032'],
+            ['bankName' => 'Stanbic IBTC', 'bankCode' => '221', 'nibssBankCode' => '221'],
+            ['bankName' => 'Polaris Bank', 'bankCode' => '076', 'nibssBankCode' => '076'],
+            ['bankName' => 'Keystone Bank', 'bankCode' => '082', 'nibssBankCode' => '082'],
+        ];
+
+        return response()->json(['data' => $banks]);
+    }
+
+    /** POST /api/transfers/verify-account — name enquiry */
+    public function verifyAccount(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'accountNumber' => 'required|string|size:10',
+            'bankCode' => 'required|string|max:10',
+        ]);
+
+        $user = $request->user();
+        $wallet = Wallet::where('user_id', $user->id)
+            ->where('wallet_provider', 'ninepsb')
+            ->where('status', 'ACTIVE')
+            ->first();
+
+        if ($wallet && $this->ninePsbTransfer) {
+            try {
+                $result = $this->ninePsbTransfer->verifyAccount(
+                    $data['bankCode'],
+                    $data['accountNumber'],
+                    $wallet,
+                );
+
+                return response()->json(['data' => $result]);
+            } catch (\Throwable $e) {
+                return response()->json([
+                    'message' => 'Could not verify account: ' . $e->getMessage(),
+                ], 422);
+            }
+        }
+
+        // Fallback for non-9PSB wallets: mock response
+        return response()->json([
+            'data' => [
+                'accountNumber' => $data['accountNumber'],
+                'bankCode' => $data['bankCode'],
+                'accountName' => 'John Doe',
+                'status' => 'SUCCESS',
+            ],
+        ]);
     }
 }

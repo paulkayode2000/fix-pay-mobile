@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'ip.whitelist' => \App\Http\Middleware\IpWhitelistMiddleware::class,
             'idempotent' => \App\Http\Middleware\IdempotencyMiddleware::class,
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
+            'pin.confirmed' => \App\Http\Middleware\EnsurePinConfirmed::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

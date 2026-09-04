@@ -39,9 +39,9 @@ class AuthController extends Controller
                 'kyc_status'    => 'UNVERIFIED',
                 'tier'          => 1,
                 'status'        => 'ACTIVE',
-                // Auto-verify for now since OTP is disabled
-                'email_verified_at' => now(),
-                'phone_verified_at' => now(),
+                // NOT auto-verified — OTP required
+                'email_verified_at' => null,
+                'phone_verified_at' => null,
             ]);
 
             // Create wallet
@@ -58,11 +58,21 @@ class AuthController extends Controller
             return $user;
         });
 
-        // OTP disabled for now to get app working on OCI
-        // $this->otpService->send($user->email, 'email', 'verification');
+        // Send OTP for email verification
+        $this->otpService->send($user->email, 'email', 'verification');
+
+        // Asynchronous TMS AML screening of the new customer (webhook result tags the user).
+        try {
+            \App\Jobs\ScreenCustomerJob::dispatch($user);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Failed to dispatch AML screening job', [
+                'user_id' => $user->id,
+                'error'   => $e->getMessage(),
+            ]);
+        }
 
         return response()->json([
-            'message' => 'Registration successful. You can now log in.',
+            'message' => 'Account created. Check your email for a verification code.',
             'user_id' => $user->id,
         ], 201);
     }
@@ -73,7 +83,7 @@ class AuthController extends Controller
         $data = $request->validate([
             'identifier' => 'required|string',
             'purpose'    => 'required|in:verification,login',
-            'code'       => 'required|string|size:4',
+            'code'       => 'required|string|size:6',
         ]);
 
         $valid = $this->otpService->verify($data['identifier'], $data['purpose'], $data['code']);
@@ -127,6 +137,10 @@ class AuthController extends Controller
             // tenant_slug is resolved from the authenticated user's DB FK — not from client input.
             // null for platform users who belong to no tenant.
             'tenant_slug'  => $user->tenant?->slug,
+            // business_id = the gateway business this tenant transacts through
+            // (source=gateway/mobile bucket discriminator). Echoed so clients can
+            // correlate; never used for authz decisions.
+            'business_id'  => (string) config('services.gateway.business_id', ''),
             // has_pin tells the client whether to show PIN creation or skip straight to home.
             // Derived server-side — client cannot forge it.
             'has_pin'      => ! is_null($user->pin_hash),

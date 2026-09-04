@@ -16,10 +16,14 @@ class IdempotentRequest extends Model
         'request_method',
         'response_code',
         'response_body',
+        'response_payload',
         'status',
+        'expires_at',
     ];
 
     protected $casts = [
         'response_body' => 'array',
+        'response_payload' => 'array',
+        'expires_at' => 'datetime',
     ];
 }

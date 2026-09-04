@@ -128,6 +128,17 @@ class VtpassPaymentController extends Controller
             ],
         );
 
+        // Asynchronous TMS checks (antifraud + AML) — tag the payment when done.
+        try {
+            \App\Jobs\AntifraudScoreJob::dispatch($payment, request()->header('X-Device-Id', ''));
+            \App\Jobs\TransactionAmlScreenJob::dispatch($payment);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Failed to dispatch TMS risk jobs for payment', [
+                'payment_id' => $payment->id,
+                'error'      => $e->getMessage(),
+            ]);
+        }
+
         try {
             // Submit asynchronously via queue in production; sync here for simplicity
             $payment = $this->vtpass->submit($payment);

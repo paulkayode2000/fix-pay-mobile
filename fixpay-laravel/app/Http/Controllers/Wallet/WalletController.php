@@ -14,8 +14,19 @@ class WalletController extends Controller
     {
         $wallet = $request->user()->wallet;
 
-        if (! $wallet) {
-            return response()->json(['message' => 'Wallet not found.'], 404);
+        // Return empty wallet state when no wallet exists (user cleaned / before KYC)
+        // Frontend handles this gracefully and shows the promo card
+        if (! $wallet || $wallet->status === 'CLOSED') {
+            return response()->json([
+                'id' => null,
+                'balance_kobo' => 0,
+                'ledger_balance_kobo' => 0,
+                'currency' => 'NGN',
+                'status' => 'INACTIVE',
+                'virtual_account_number' => null,
+                'virtual_account_bank' => null,
+                'virtual_account_bank_code' => null,
+            ]);
         }
 
         return response()->json([

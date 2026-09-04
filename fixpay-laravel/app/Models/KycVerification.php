@@ -11,7 +11,7 @@ class KycVerification extends Model
     use HasUuids;
 
     protected $fillable = [
-        'user_id', 'type', 'identifier', 'provider',
+        'user_id', 'type', 'identifier', 'encrypted_identifier', 'provider',
         'provider_reference', 'verification_status',
         'response_json', 'failure_reason', 'verified_at',
         'nibss_session_id', 'nibss_retrieval_token', 'consent_expiry_time',

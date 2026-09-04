@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\PaymentRailAdminController;
+use App\Http\Controllers\Admin\RailsAdminController;
 use App\Http\Controllers\Admin\TenantAdminController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\PinController;
@@ -21,7 +22,9 @@ use App\Http\Controllers\Transfer\PaystackWebhookController;
 use App\Http\Controllers\Transfer\TransferController;
 use App\Http\Controllers\User\KycController;
 use App\Http\Controllers\User\UserController;
+use App\Http\Controllers\Wallet\NinePsbWalletController;
 use App\Http\Controllers\Wallet\WalletController;
+use App\Http\Controllers\NinePsbWebhookController;
 use Illuminate\Support\Facades\Route;
 
 // ── Public routes ─────────────────────────────────────────────────────────
@@ -44,6 +47,12 @@ Route::post('webhooks/paystack', [PaystackWebhookController::class, 'handle']);
 
 // NIBSS Webhook callback (public)
 Route::post('webhooks/nibss/callback', [KycController::class, 'nibssCallback']);
+
+// 9PSB Webhook (public, verified by Basic Auth)
+Route::match(['get', 'post'], 'webhooks/9psb', [NinePsbWebhookController::class, 'handle']);
+
+// TMS AML/Antifraud result webhook (public, verified by HMAC signature)
+Route::post('webhooks/tms', [\App\Http\Controllers\Webhook\TmsWebhookController::class, 'handle']);
 
 // ── Authenticated consumer routes ─────────────────────────────────────────
 Route::middleware(['auth:sanctum'])->group(function () {
@@ -84,6 +93,18 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('wallet')->group(function () {
         Route::get('/', [WalletController::class, 'show']);
         Route::get('transactions', [WalletController::class, 'transactions']);
+
+        // 9PSB Wallet operations (KYC-gated, device-bound, location-enforced)
+        Route::prefix('ninepsb')->group(function () {
+            Route::get('terms', [NinePsbWalletController::class, 'terms']);
+            Route::post('create', [NinePsbWalletController::class, 'create']);
+            Route::get('enquiry', [NinePsbWalletController::class, 'enquiry']);
+            Route::get('status', [NinePsbWalletController::class, 'status']);
+            Route::get('transactions', [NinePsbWalletController::class, 'transactions']);
+            Route::post('upgrade', [NinePsbWalletController::class, 'upgrade']);
+            Route::get('upgrade-status', [NinePsbWalletController::class, 'upgradeStatus']);
+            Route::post('requery', [NinePsbWalletController::class, 'requery']);
+        });
     });
 
     // Payments
@@ -100,6 +121,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Transfers
     Route::prefix('transfers')->group(function () {
         Route::get('/', [TransferController::class, 'index']);
+        Route::get('banks', [TransferController::class, 'banks']);
+        Route::post('verify-account', [TransferController::class, 'verifyAccount']);
         Route::post('bank', [TransferController::class, 'toBank']);
         Route::post('wallet', [TransferController::class, 'toWallet']);
         Route::get('{reference}', [TransferController::class, 'status']);
@@ -194,6 +217,43 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function ()
         Route::post('/', [PaymentRailAdminController::class, 'create']);
         Route::put('{id}', [PaymentRailAdminController::class, 'update']);
         Route::post('{id}/fee-schedules', [PaymentRailAdminController::class, 'addFeeSchedule']);
+    });
+
+    Route::prefix('rails')->group(function () {
+        Route::get('/', [RailsAdminController::class, 'index']);
+        Route::post('/', [RailsAdminController::class, 'store']);
+        Route::get('audit', [RailsAdminController::class, 'auditLog']);
+        Route::get('processors', [RailsAdminController::class, 'processors']);
+        Route::get('processors/{processorId}/schema', [RailsAdminController::class, 'processorSchema']);
+        Route::get('health', [RailsAdminController::class, 'health']);
+        Route::get('{id}', [RailsAdminController::class, 'show']);
+        Route::put('{id}/config', [RailsAdminController::class, 'updateConfig']);
+        Route::put('{id}/processor', [RailsAdminController::class, 'updateProcessor']);
+        Route::patch('{id}/enabled', [RailsAdminController::class, 'toggleEnabled']);
+        Route::patch('{id}/maintenance', [RailsAdminController::class, 'setMaintenance']);
+        Route::delete('{id}', [RailsAdminController::class, 'destroy']);
+        Route::get('{id}/fees', [RailsAdminController::class, 'fees']);
+        Route::post('{id}/fees', [RailsAdminController::class, 'addFee']);
+        Route::delete('{id}/fees/{feeId}', [RailsAdminController::class, 'deleteFee']);
+        Route::get('{id}/audit', [RailsAdminController::class, 'entityAuditLog']);
+    });
+
+    Route::prefix('plugins')->group(function () {
+        Route::get('/', [RailsAdminController::class, 'plugins']);
+        Route::post('reload', [RailsAdminController::class, 'reloadPlugins']);
+        Route::delete('{pluginId}', [RailsAdminController::class, 'unloadPlugin']);
+    });
+
+    Route::prefix('settlement')->group(function () {
+        Route::get('report', [RailsAdminController::class, 'settlementReport']);
+        Route::get('cycles', [RailsAdminController::class, 'settlementCycles']);
+    });
+
+    Route::prefix('alerts')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\AlertAdminController::class, 'index']);
+        Route::get('unread-count', [\App\Http\Controllers\Admin\AlertAdminController::class, 'unreadCount']);
+        Route::post('seen', [\App\Http\Controllers\Admin\AlertAdminController::class, 'markSeen']);
+        Route::patch('{id}', [\App\Http\Controllers\Admin\AlertAdminController::class, 'update']);
     });
 
     Route::prefix('disputes')->group(function () {

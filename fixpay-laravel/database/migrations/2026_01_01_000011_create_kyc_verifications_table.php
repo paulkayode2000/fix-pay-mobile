@@ -13,7 +13,7 @@ return new class extends Migration
             $table->uuid('user_id')->index();
             $table->enum('type', ['BVN', 'NIN', 'CAC', 'SELFIE', 'AML_PEP', 'AML_SANCTIONS']);
             $table->string('identifier')->nullable(); // the BVN/NIN number (hashed for PII)
-            $table->string('provider', 30)->default('mock'); // prembly, youverify, smileid, mock
+            $table->string('provider', 30)->default('mock'); // youverify, smileid, mock
             $table->string('provider_reference')->nullable();
             $table->enum('verification_status', ['PENDING', 'VERIFIED', 'FAILED'])->default('PENDING');
             $table->jsonb('response_json')->nullable();

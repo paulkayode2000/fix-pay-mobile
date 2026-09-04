@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\RiskTagging;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,14 +16,18 @@ use Spatie\Permission\Traits\HasRoles;
 
 class AppUser extends Authenticatable
 {
-    use HasUuids, SoftDeletes, HasApiTokens, HasRoles, HasFactory;
+    use HasUuids, SoftDeletes, HasApiTokens, HasRoles, HasFactory, RiskTagging;
 
     protected $table = 'app_users';
 
     protected $fillable = [
         'tenant_id', 'phone', 'email', 'first_name', 'last_name',
+        'date_of_birth', 'gender', 'address',
         'password_hash', 'pin_hash', 'kyc_status', 'tier', 'status',
         'email_verified_at', 'phone_verified_at',
+        // TMS AML risk tags
+        'aml_status', 'aml_score', 'aml_case_ref',
+        'risk_status', 'risk_tags', 'aml_screened_at',
     ];
 
     protected $hidden = [
@@ -30,9 +35,14 @@ class AppUser extends Authenticatable
     ];
 
     protected $casts = [
+        'date_of_birth' => 'date',
         'email_verified_at' => 'datetime',
         'phone_verified_at' => 'datetime',
         'tier' => 'integer',
+        // TMS AML risk tags
+        'aml_score' => 'float',
+        'risk_tags' => 'array',
+        'aml_screened_at' => 'datetime',
     ];
 
     // Laravel auth expects 'password' column name

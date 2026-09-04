@@ -45,12 +45,6 @@ return [
         'provider' => env('AML_PROVIDER', 'mock'),
     ],
 
-    'prembly' => [
-        'api_key' => env('PREMBLY_API_KEY', ''),
-        'app_id' => env('PREMBLY_APP_ID', ''),
-        'base_url' => env('PREMBLY_BASE_URL', 'https://api.prembly.com/identitypass'),
-    ],
-
     'youverify' => [
         'api_key' => env('YOUVERIFY_API_KEY', ''),
         'base_url' => env('YOUVERIFY_BASE_URL', 'https://api.youverify.co/v2'),
@@ -80,6 +74,48 @@ return [
         'secret_key' => env('PAYSTACK_SECRET_KEY', ''),
         'public_key' => env('PAYSTACK_PUBLIC_KEY', ''),
         'base_url' => env('PAYSTACK_BASE_URL', 'https://api.paystack.co'),
+    ],
+
+    'gateway' => [
+        'base_url'    => env('PAYFIXY_GATEWAY_BASE_URL', 'http://localhost:8999'),
+        'api_key'     => env('PAYFIXY_GATEWAY_API_KEY', ''),
+        'secret_key'  => env('PAYFIXY_GATEWAY_SECRET_KEY', ''),
+        'business_id' => env('PAYFIXY_GATEWAY_BUSINESS_ID', ''),
+        'enabled'     => env('PAYFIXY_GATEWAY_ENABLED', false),
+        // Directory scanned for hot-loadable processor plugins (JAR/ZIP).
+        'plugins_dir' => env('PAYFIXY_PLUGINS_DIR', base_path('plugins')),
+    ],
+
+    // ── TMS AML / Antifraud integration ───────────────────────────────────────
+    // TMS is the external AML/antifraud platform (aml-system + antifraud-service).
+    // fixpay fires asynchronous checks at TMS and tags transactions/users with the
+    // returned scores. See App\Services\Tms\AmlClient / AntifraudClient.
+
+    'tms' => [
+        'enabled'        => env('TMS_ENABLED', false),
+        'base_url'       => env('TMS_BASE_URL', 'http://aml.127.0.0.1.nip.io'),        // aml-system (Laravel) via the TMS hostname router
+        'api_token'      => env('TMS_API_TOKEN', ''),                          // AuthenticateApiClient token
+        'webhook_secret' => env('TMS_WEBHOOK_SECRET', ''),                     // HMAC secret for TMS webhooks
+        'timeout'        => (int) env('TMS_TIMEOUT', 15),
+    ],
+
+    'antifraud' => [
+        'enabled'  => env('TMS_ANTIFRAUD_ENABLED', false),
+        'base_url' => env('TMS_ANTIFRAUD_URL', 'http://antifraud.127.0.0.1.nip.io'),  // antifraud-service (FastAPI) via the TMS hostname router
+        'api_key'  => env('TMS_ANTIFRAUD_API_KEY', ''),                        // X-API-Key (empty = dev mode)
+        'timeout'  => (int) env('TMS_ANTIFRAUD_TIMEOUT', 15),
+        // TTL for the in-memory cache of the TMS-published ruleset (X-Rules-Version).
+        'rules_cache_ttl' => (int) env('TMS_ANTIFRAUD_RULES_CACHE_TTL', 60),
+    ],
+
+    'ninepsb' => [
+        'base_url' => env('9PSB_BASE_URL', 'http://102.216.128.75:9090/waas'),
+        'username' => env('9PSB_USERNAME', 'payfixy'),
+        'password' => env('9PSB_PASSWORD', ''),
+        'client_id' => env('9PSB_CLIENT_ID', 'waas'),
+        'client_secret' => env('9PSB_CLIENT_SECRET', ''),
+        'webhook_username' => env('9PSB_WEBHOOK_USERNAME', ''),
+        'webhook_password' => env('9PSB_WEBHOOK_PASSWORD', ''),
     ],
 
 ];

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\RiskTagging;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class VtpassPayment extends Model
 {
-    use HasUuids;
+    use HasUuids, RiskTagging;
 
     protected $table = 'vtpass_payments';
 
@@ -18,7 +19,12 @@ class VtpassPayment extends Model
         'service_id', 'variation_code', 'amount_kobo', 'fee_kobo', 'phone',
         'billersCode', 'request_payload', 'response_payload', 'payment_status',
         'provider_code', 'processor_id', 'processor_fee_kobo', 'token', 'units',
+        'requery_count', 'last_requeried_at', 'provider_request_id',
         'completed_at', 'failed_at',
+        // TMS risk tags
+        'aml_status', 'aml_score', 'aml_case_ref',
+        'antifraud_status', 'antifraud_score',
+        'risk_status', 'risk_score', 'risk_screened_at',
     ];
 
     protected $casts = [
@@ -27,8 +33,15 @@ class VtpassPayment extends Model
         'amount_kobo' => 'integer',
         'fee_kobo' => 'integer',
         'processor_fee_kobo' => 'integer',
+        'requery_count' => 'integer',
+        'last_requeried_at' => 'datetime',
         'completed_at' => 'datetime',
         'failed_at' => 'datetime',
+        // TMS risk tags
+        'aml_score' => 'float',
+        'antifraud_score' => 'float',
+        'risk_score' => 'float',
+        'risk_screened_at' => 'datetime',
     ];
 
     public function user(): BelongsTo
@@ -53,6 +66,7 @@ class VtpassPayment extends Model
 
     public function isTerminal(): bool
     {
-        return in_array($this->payment_status, ['COMPLETED', 'FAILED', 'REVERSED']);
+        return in_array($this->payment_status,
+            ['COMPLETED', 'FAILED', 'REVERSED', 'REQUIRES_RECONCILIATION']);
     }
 }

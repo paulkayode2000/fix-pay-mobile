@@ -5,6 +5,7 @@ namespace App\Services\Transfer;
 use App\Models\AppUser;
 use App\Models\Transfer;
 use App\Models\Wallet;
+use App\Services\Gateway\GatewayClient;
 use App\Services\Payment\PaymentRailService;
 use App\Services\Wallet\WalletService;
 use GuzzleHttp\Client;
@@ -15,6 +16,7 @@ class TransferService
 {
     public function __construct(
         private readonly Client $http,
+        private readonly GatewayClient $gatewayClient,
         private readonly WalletService $walletService,
         private readonly PaymentRailService $railService,
         private readonly string $paystackSecretKey,
@@ -40,7 +42,7 @@ class TransferService
         $rail = $this->railService->getActiveRail('BANK_TRANSFER', $user->tenant_id);
         $feeKobo = $rail ? $this->railService->calculateFee($rail, $amountKobo) : 0;
 
-        return DB::transaction(function () use (
+        $transfer = DB::transaction(function () use (
             $user, $wallet, $amountKobo, $accountNumber, $bankCode, $narration,
             $reference, $idempotencyKey, $feeKobo
         ) {
@@ -77,6 +79,11 @@ class TransferService
 
             return $transfer->fresh();
         });
+
+        // Asynchronous TMS checks (antifraud + AML) — tag the transfer when done.
+        $this->dispatchRiskJobs($transfer);
+
+        return $transfer;
     }
 
     public function initiateWallet(
@@ -105,7 +112,7 @@ class TransferService
 
         $reference = 'FPW' . now()->format('YmdHis') . strtoupper(Str::random(6));
 
-        return DB::transaction(function () use (
+        $transfer = DB::transaction(function () use (
             $user, $wallet, $recipient, $recipientWallet, $amountKobo,
             $narration, $reference, $idempotencyKey
         ) {
@@ -128,6 +135,28 @@ class TransferService
                 'completed_at' => now(),
             ]);
         });
+
+        // Asynchronous TMS checks (antifraud + AML) — tag the transfer when done.
+        $this->dispatchRiskJobs($transfer);
+
+        return $transfer;
+    }
+
+    /**
+     * Fire the two independent asynchronous TMS risk checks for a transaction.
+     * Failures are logged and never block the payment path.
+     */
+    private function dispatchRiskJobs(\App\Models\Transfer $transfer): void
+    {
+        try {
+            \App\Jobs\AntifraudScoreJob::dispatch($transfer, request()->header('X-Device-Id', ''));
+            \App\Jobs\TransactionAmlScreenJob::dispatch($transfer);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Failed to dispatch TMS risk jobs for transfer', [
+                'transfer_id' => $transfer->id,
+                'error'       => $e->getMessage(),
+            ]);
+        }
     }
 
     private function resolveAccountName(string $accountNumber, string $bankCode): string
@@ -201,6 +230,10 @@ class TransferService
 
     private function submitPaystackTransfer(Transfer $transfer): void
     {
+        if (config('services.gateway.enabled', false)) {
+            $this->submitGatewayTransfer($transfer);
+            return;
+        }
         if (! $transfer->paystack_recipient_code) {
             $transfer->update(['status' => 'FAILED', 'failed_at' => now(), 'failure_reason' => 'No recipient code']);
 
@@ -247,6 +280,58 @@ class TransferService
             ]);
             
             // Release the hold without creating a ledger entry since the external API failed instantly
+            $wallet = Wallet::find($transfer->wallet_id);
+            if ($wallet) {
+                app(WalletService::class)->releaseHold(
+                    $wallet,
+                    $transfer->amount_kobo + $transfer->fee_kobo
+                );
+            }
+        }
+    }
+
+    private function submitGatewayTransfer(Transfer $transfer): void
+    {
+        try {
+            $wallet = Wallet::find($transfer->wallet_id);
+            $result = $this->gatewayClient->transferFromWallet(
+                $wallet,
+                $transfer->account_number,
+                $transfer->bank_code,
+                round($transfer->amount_kobo / 100, 2),
+                $transfer->narration,
+                reference: $transfer->transfer_reference,
+            );
+            $success = GatewayClient::isSuccess($result);
+            $transfer->update([
+                'status' => $success ? 'PROCESSING' : 'FAILED',
+                'provider_response' => $result,
+                'failed_at' => $success ? null : now(),
+                'failure_reason' => $success ? null : ($result['message'] ?? 'Gateway transfer failed'),
+            ]);
+
+            $wallet = Wallet::find($transfer->wallet_id);
+            if ($wallet) {
+                if ($success) {
+                    app(WalletService::class)->commitHold(
+                        $wallet,
+                        $transfer->amount_kobo + $transfer->fee_kobo,
+                        $transfer->transfer_reference,
+                        "Bank transfer: {$transfer->account_number}"
+                    );
+                } else {
+                    app(WalletService::class)->releaseHold(
+                        $wallet,
+                        $transfer->amount_kobo + $transfer->fee_kobo
+                    );
+                }
+            }
+        } catch (\Throwable $e) {
+            $transfer->update([
+                'status' => 'FAILED',
+                'failed_at' => now(),
+                'failure_reason' => $e->getMessage(),
+            ]);
             $wallet = Wallet::find($transfer->wallet_id);
             if ($wallet) {
                 app(WalletService::class)->releaseHold(
