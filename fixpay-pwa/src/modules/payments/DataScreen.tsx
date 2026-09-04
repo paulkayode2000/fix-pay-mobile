@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useQuery } from '@tanstack/react-query'
 import { queryClient } from '@/lib/query-client'
-import type { ServiceVariation } from '@/types'
+import type { ServiceVariation, ValidityCategory } from '@/types'
 import { paymentsService } from '@/lib/services/payments.service'
 import { authService } from '@/lib/services/auth.service'
 import { PageHeader } from '@/components/layout/PageHeader'
@@ -17,6 +17,7 @@ import { PinPad } from '@/components/ui/PinPad'
 import { Spinner } from '@/components/ui/Spinner'
 import { resolveVtpassCode } from '@/lib/vtpass-codes'
 import { PaymentMethodSelector, type PaymentMethod } from '@/components/feature/PaymentMethodSelector'
+import { groupVariations, activeCategories, CATEGORY_LABELS } from '@/lib/categorize-variations'
 
 const parseAmount = (amt: string | number | undefined | null): number => {
   if (!amt) return 0;
@@ -52,6 +53,9 @@ export function DataScreen() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('wallet')
   const { isProcessing, startProcessing, stopProcessing } = useTransactionStore()
 
+  // ── Categorisation tab state ───────────────────────────────────────────────
+  const [activeTab, setActiveTab] = useState<ValidityCategory>('daily')
+
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { serviceId: 'mtn-data', billersCode: '', variationCode: '', amount: 0 },
@@ -64,6 +68,17 @@ export function DataScreen() {
     queryFn: () => paymentsService.getVariations(serviceId),
   })
   const chosen = variations.find(v => (v.variationCode ?? (v as any).variation_code) === variationCode)
+
+  // ── Group variations by validity category ──────────────────────────────────
+  const grouped = useMemo(() => groupVariations(variations), [variations])
+  const tabs = useMemo(() => activeCategories(grouped), [grouped])
+
+  // Auto-select the first available tab when bundles load / change
+  useEffect(() => {
+    if (tabs.length > 0 && !tabs.includes(activeTab)) {
+      setActiveTab(tabs[0])
+    }
+  }, [tabs, activeTab])
 
   // Keep amount in sync whenever a variation is selected
   const onVariationSelect = (code: string, amountNaira: number) => {
@@ -158,7 +173,7 @@ export function DataScreen() {
   return (
     <div className="flex flex-col h-[100dvh] bg-[#F2F2F7]">
       <PageHeader title="Buy Data" onBack="default" />
-      <div className="flex-1 overflow-y-auto no-scrollbar px-4 pt-4 pb-8 animate-slide-up">
+      <div className="flex-1 overflow-y-auto no-scrollbar px-4 pt-4 pb-32 animate-slide-up">
 
         {/* Network selector */}
         <p className="text-[13px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Select Network</p>
@@ -179,25 +194,49 @@ export function DataScreen() {
             placeholder={serviceId === 'spectranet' ? 'e.g. 0811111111' : serviceId === 'smile-direct' ? 'e.g. 0712345678' : '08012345678'}
             error={errors.billersCode?.message} {...register('billersCode')} />
 
-          {/* Bundle list */}
+          {/* Bundle list - grouped by validity category */}
           <div>
             <p className="text-[13px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Select Bundle</p>
             {varsLoading ? <div className="flex justify-center py-4"><Spinner /></div> : (
-              <div className="flex flex-col gap-2 max-h-[240px] overflow-y-auto pr-1">
-                {variations.map((v, idx) => {
-                  const code = v.variationCode ?? (v as any).variation_code
-                  const amount = v.variationAmount ?? (v as any).variation_amount
-                  const amountNaira = parseAmount(amount)
-                  return (
-                    <button key={code || idx} type="button" onClick={() => onVariationSelect(code, amountNaira)}
-                      className="flex items-center justify-between bg-white rounded-[14px] px-4 py-3 border-2 transition-all pressable"
-                      style={{ borderColor: variationCode === code ? 'var(--brand-primary)' : 'transparent' }}>
-                      <span className="text-[15px] font-medium text-gray-800 text-left mr-2">{v.name}</span>
-                      <span className="text-[15px] font-bold shrink-0" style={{ color: 'var(--brand-primary)' }}>₦{amountNaira.toLocaleString()}</span>
-                    </button>
-                  )
-                })}
-              </div>
+              <>
+                {/* Category tabs — only show when there's more than one */}
+                {tabs.length > 1 && (
+                  <div className="flex gap-1.5 mb-3 overflow-x-auto no-scrollbar">
+                    {tabs.map(cat => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setActiveTab(cat)}
+                        className={
+                          'px-4 py-2 rounded-full text-[13px] font-semibold transition-colors pressable whitespace-nowrap ' +
+                          (activeTab === cat
+                            ? 'bg-[var(--brand-primary)] text-white'
+                            : 'bg-white text-gray-500 border border-gray-200')
+                        }
+                      >
+                        {CATEGORY_LABELS[cat]}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Active tab bundles */}
+                <div className="flex flex-col gap-2 max-h-[240px] overflow-y-auto pr-1">
+                  {(grouped[activeTab] ?? []).map((v, idx) => {
+                    const code = v.variationCode ?? (v as any).variation_code
+                    const amount = v.variationAmount ?? (v as any).variation_amount
+                    const amountNaira = parseAmount(amount)
+                    return (
+                      <button key={code || idx} type="button" onClick={() => onVariationSelect(code, amountNaira)}
+                        className="flex items-center justify-between bg-white rounded-[14px] px-4 py-3 border-2 transition-all pressable"
+                        style={{ borderColor: variationCode === code ? 'var(--brand-primary)' : 'transparent' }}>
+                        <span className="text-[15px] font-medium text-gray-800 text-left mr-2">{v.name}</span>
+                        <span className="text-[15px] font-bold shrink-0" style={{ color: 'var(--brand-primary)' }}>₦{amountNaira.toLocaleString()}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </>
             )}
             {errors.variationCode && <p className="text-ios-red text-[13px] mt-1">{errors.variationCode.message}</p>}
           </div>
@@ -212,7 +251,7 @@ export function DataScreen() {
 
       <BottomSheet open={showPin} onClose={() => setShowPin(false)} title="Enter PIN" dismissible={!isProcessing}>
         <div className="px-2 pt-2 pb-4">
-          <PinPad value={pin} onChange={handlePinChange} error={pinError} disabled={isProcessing} />
+          <PinPad value={pin} onChange={handlePinChange} error={pinError} disabled={isProcessing} scrambled />
         </div>
       </BottomSheet>
     </div>

@@ -59,6 +59,8 @@ export interface TenantConfig {
   }
 }
 
+export type ValidityCategory = 'daily' | 'weekly' | 'monthly' | 'other'
+
 export interface ServiceVariation {
   variationCode: string
   name: string

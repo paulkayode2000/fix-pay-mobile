@@ -37,6 +37,9 @@ import { SystemHealthScreen } from '@/modules/system/SystemHealthScreen'
 import { FraudRulesScreen } from '@/modules/risk/FraudRulesScreen'
 import { FraudCasesScreen } from '@/modules/risk/FraudCasesScreen'
 
+// Risk alerts (TMS AML/antifraud flags)
+import { AlertsScreen } from '@/modules/alerts/AlertsScreen'
+
 // ─── Initialisation gate ───────────────────────────────────────────────────
 
 import { LoginScreen } from '@/modules/auth/LoginScreen'
@@ -73,6 +76,9 @@ const router = createBrowserRouter([
         children: [
           { index: true,                         element: <Navigate to="/analytics" replace /> },
           { path: 'analytics',                   element: <AnalyticsDashboard /> },
+
+          // Risk alerts (TMS AML/antifraud)
+          { path: 'alerts',                      element: <AlertsScreen /> },
 
           // Tenants
           { path: 'tenants',                     element: <TenantListScreen /> },

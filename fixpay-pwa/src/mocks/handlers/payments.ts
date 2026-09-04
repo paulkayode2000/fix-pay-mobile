@@ -1,18 +1,24 @@
 import { http, HttpResponse, delay } from 'msw'
-import { variations } from '../data'
-import { generateRequestId } from '@/lib/utils'
-import { deductBalance } from './wallet'
+
+// ── NOTE: All MSW payment handlers REMOVED ───────────────────────────
+// Payments now route through Vite proxy → Laravel backend → VTPass API.
+// The backend's VtpassService handles wallet deductions and VTPass sandbox calls.
+//
+// Leaf endpoints only — variations + verify stay mocked for MSW dev speed.
+// Actual payment submissions (airtime, data, tv, electricity, education,
+// insurance) bypass MSW entirely and hit the real backend.
 
 export const paymentHandlers = [
-  // GET variation codes
+  // GET variation codes (stay mocked for dev speed)
   http.get('/api/payments/variations/:serviceId', async ({ params }) => {
     await delay(400)
+    const { variations } = await import('../data')
     const vars = variations[params.serviceId as string]
     if (!vars) return HttpResponse.json({ message: 'Service not found' }, { status: 404 })
     return HttpResponse.json({ serviceId: params.serviceId, variations: vars })
   }),
 
-  // Merchant verify (TV smartcard / electricity meter / JAMB profile)
+  // Merchant verify (stay mocked for dev speed)
   http.post('/api/payments/verify', async ({ request }) => {
     await delay(900)
     const body = await request.json() as Record<string, string>
@@ -45,175 +51,9 @@ export const paymentHandlers = [
     return HttpResponse.json({ code: '030', message: 'Biller not reachable' }, { status: 400 })
   }),
 
-  // Pay endpoint (airtime, data, TV, electricity, education)
-  http.post('/api/payments/airtime', async ({ request }) => {
-    await delay(1200)
-    const body = await request.json() as Record<string, unknown>
-    const amount = Number(body.amount) * 100
-    deductBalance(amount)
-    return HttpResponse.json({
-      code: '000',
-      content: { transactions: { status: 'delivered', product_name: `${String(body.serviceId).toUpperCase()} Airtime VTU`, unique_element: body.phone, unit_price: body.amount, quantity: 1, commission: 3, total_amount: Number(body.amount) - 3 } },
-      response_description: 'TRANSACTION SUCCESSFUL',
-      requestId: generateRequestId(),
-      amount: body.amount,
-      transaction_date: new Date().toISOString(),
-      purchased_code: '',
-    })
-  }),
-
-  http.post('/api/payments/data', async ({ request }) => {
-    await delay(1200)
-    const body = await request.json() as Record<string, unknown>
-    const vars = variations[body.serviceId as string] ?? []
-    const chosen = vars.find(v => v.variationCode === body.variationCode)
-    const amount = parseFloat(chosen?.variationAmount ?? '0') * 100
-    deductBalance(amount)
-    return HttpResponse.json({
-      code: '000',
-      content: { transactions: { status: 'delivered', product_name: chosen?.name ?? 'Data Bundle', unique_element: body.billersCode } },
-      response_description: 'TRANSACTION SUCCESSFUL',
-      requestId: generateRequestId(),
-      amount: chosen?.variationAmount,
-      transaction_date: new Date().toISOString(),
-    })
-  }),
-
-  http.post('/api/payments/tv', async ({ request }) => {
-    await delay(1400)
-    const body = await request.json() as Record<string, unknown>
-    const vars = variations[body.serviceId as string] ?? []
-    const chosen = vars.find(v => v.variationCode === body.variationCode)
-    const amount = body.subscriptionType === 'renew'
-      ? (Number(body.amount) * 100)
-      : parseFloat(chosen?.variationAmount ?? '0') * 100
-    deductBalance(amount)
-    return HttpResponse.json({
-      code: '000',
-      content: { transactions: { status: 'delivered', product_name: chosen?.name ?? 'TV Subscription', unique_element: body.billersCode } },
-      response_description: 'TRANSACTION SUCCESSFUL',
-      requestId: generateRequestId(),
-      amount: amount / 100,
-      transaction_date: new Date().toISOString(),
-    })
-  }),
-
-  http.post('/api/payments/electricity', async ({ request }) => {
-    await delay(1600)
-    const body = await request.json() as Record<string, unknown>
-    const amount = Number(body.amount) * 100
-    deductBalance(amount)
-    const isPrepaid = body.variationCode === 'prepaid'
-    return HttpResponse.json({
-      code: '000',
-      content: { transactions: { status: 'delivered', product_name: 'Ikeja Electric Payment Service', unique_element: body.billersCode, unit_price: body.amount } },
-      response_description: 'TRANSACTION SUCCESSFUL',
-      requestId: generateRequestId(),
-      amount: body.amount,
-      transaction_date: new Date().toISOString(),
-      purchased_code: isPrepaid ? '5024-8167-3921-4856-7301' : '',
-      token: isPrepaid ? '5024-8167-3921-4856-7301' : undefined,
-      units: isPrepaid ? `${(Number(body.amount) / 47.5).toFixed(1)} kWh` : undefined,
-    })
-  }),
-
-  http.post('/api/payments/education', async ({ request }) => {
-    await delay(1400)
-    const body = await request.json() as Record<string, unknown>
-    const vars = variations[body.serviceId as string] ?? []
-    const chosen = vars.find(v => v.variationCode === body.variationCode)
-    const amount = parseFloat(chosen?.variationAmount ?? '0') * 100
-    deductBalance(amount)
-    const isJamb = body.serviceId === 'jamb'
-    return HttpResponse.json({
-      code: '000',
-      content: { transactions: { status: 'delivered', product_name: chosen?.name, unique_element: body.billersCode ?? body.phone } },
-      response_description: 'TRANSACTION SUCCESSFUL',
-      requestId: generateRequestId(),
-      amount: chosen?.variationAmount,
-      transaction_date: new Date().toISOString(),
-      purchased_code: isJamb ? 'Pin : 3678251321392432' : 'Token: 0100070365657400875',
-      Pin: isJamb ? 'Pin : 3678251321392432' : undefined,
-    })
-  }),
-
-  http.post('/api/payments/insurance', async ({ request }) => {
-    await delay(1400)
-    const body = await request.json() as Record<string, unknown>
-    const vars = variations[body.serviceId as string] ?? []
-    const chosen = vars.find(v => v.variationCode === body.variationCode)
-    const amount = parseFloat(chosen?.variationAmount ?? '0') * 100
-    deductBalance(amount)
-    return HttpResponse.json({
-      code: '000',
-      content: { transactions: { status: 'delivered', product_name: chosen?.name, unique_element: body.billersCode } },
-      response_description: 'TRANSACTION SUCCESSFUL',
-      requestId: generateRequestId(),
-      amount: chosen?.variationAmount,
-      transaction_date: new Date().toISOString(),
-      purchased_code: 'POLICY-' + Math.random().toString(36).substring(2, 12).toUpperCase(),
-    })
-  }),
-
-  http.post('/api/payments/requery/:requestId', async () => {
-    await delay(600)
-    return HttpResponse.json({ code: '000', content: { transactions: { status: 'delivered' } } })
-  }),
-
-  http.post('/api/payments/vtpass/:paymentReference/requery', async ({ params }) => {
-    await delay(600)
-    return HttpResponse.json({
-      success: true,
-      message: 'Requery processed',
-      data: {
-        paymentReference: params.paymentReference,
-        paymentStatus: 'completed',
-        providerStatus: 'delivered',
-        providerCode: '000',
-        providerMessage: 'Transaction Delivered',
-        amount: 50.00,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      }
-    })
-  }),
-
-  http.post('/api/payments/vtpass', async ({ request }) => {
-    await delay(1200)
-    const body = await request.json() as Record<string, any>
-    const serviceId = body.service_id
-    const amountKobo = Number(body.amount_kobo)
-    deductBalance(amountKobo)
-
-    const isPrepaid = body.variation_code === 'prepaid'
-    const isJamb = serviceId === 'jamb'
-
-    return HttpResponse.json({
-      payment_reference: 'FP-VTP-' + Math.random().toString(36).substring(2, 10).toUpperCase(),
-      status: 'COMPLETED',
-      token: isPrepaid ? '5024-8167-3921-4856-7301' : (isJamb ? 'Pin : 3678251321392432' : null),
-      units: isPrepaid ? `${(amountKobo / 4750).toFixed(1)} kWh` : null,
-      amount_kobo: amountKobo,
-      fee_kobo: 0,
-      code: '000',
-    })
-  }),
-
-  http.get('/api/payments/vtpass/:reference', async ({ params }) => {
-    await delay(600)
-    return HttpResponse.json({
-      payment_reference: params.reference,
-      service_id: 'airtime',
-      amount_kobo: 100000,
-      fee_kobo: 0,
-      status: 'COMPLETED',
-      token: null,
-      units: null,
-      phone: '08012345678',
-      billers_code: '08012345678',
-      variation_code: '',
-      completed_at: new Date().toISOString(),
-      failed_at: null,
-    })
-  }),
+  // ── ALL PAYMENT SUBMISSIONS REMOVED ────────────────────────────────
+  // airtime, data, tv, electricity, education, insurance, vtpass pay,
+  // vtpass requery → all now pass through to real backend via Vite proxy.
+  // The backend's VtpassService handles wallet deductions and
+  // communicates with VTPass sandbox API.
 ]

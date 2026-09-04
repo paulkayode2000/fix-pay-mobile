@@ -237,7 +237,7 @@ export function ElectricityScreen() {
 
       <BottomSheet open={showPin} onClose={() => setShowPin(false)} title="Enter PIN" dismissible={!isProcessing}>
         <div className="px-2 pt-2 pb-4">
-          <PinPad value={pin} onChange={handlePinChange} error={pinError} disabled={isProcessing} />
+          <PinPad value={pin} onChange={handlePinChange} error={pinError} disabled={isProcessing} scrambled />
         </div>
       </BottomSheet>
     </div>

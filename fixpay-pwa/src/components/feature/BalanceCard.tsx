@@ -23,6 +23,21 @@ export function BalanceCard() {
     </div>
   )
 
+  // Handle missing wallet gracefully — show zero balance state
+  if (!wallet) {
+    return (
+      <div className="mx-4 rounded-[20px] p-5 text-white relative overflow-hidden" style={{ background: 'var(--brand-primary)' }}>
+        <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-white/10 pointer-events-none" />
+        <div className="absolute -bottom-12 -left-8 w-40 h-40 rounded-full bg-white/10 pointer-events-none" />
+        <div className="relative">
+          <span className="text-[13px] font-medium text-white/80">Wallet Balance</span>
+          <div className="text-[32px] font-bold tracking-tight mb-3">₦ 0.00</div>
+          <p className="text-[13px] text-white/70 mb-5">Complete KYC to activate your wallet</p>
+        </div>
+      </div>
+    )
+  }
+
   const balance = wallet?.balanceKobo ?? 0
   const acct = wallet?.virtualAccount?.accountNumber ?? ''
   const bank = wallet?.virtualAccount?.bankName ?? ''

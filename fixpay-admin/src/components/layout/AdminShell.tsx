@@ -11,10 +11,13 @@ import {
   CpuChipIcon,
   ExclamationTriangleIcon,
   WrenchScrewdriverIcon,
+  BellIcon,
   ChevronDownIcon,
   ArrowRightOnRectangleIcon,
 } from '@heroicons/react/24/outline'
 import { useState, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { alertsApi } from '@/modules/alerts/alertsApi'
 
 interface NavItem {
   label: string
@@ -26,6 +29,7 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { label: 'Analytics',    to: '/analytics',     icon: ChartBarIcon },
+  { label: 'Alerts',       to: '/alerts',        icon: BellIcon },
   { label: 'Tenants',      to: '/tenants',        icon: BuildingOffice2Icon },
   { label: 'Admin Users',  to: '/users',          icon: UsersIcon },
   { label: 'Transactions', to: '/transactions',   icon: ArrowsRightLeftIcon },
@@ -50,9 +54,42 @@ const NAV: NavItem[] = [
   { label: 'System',       to: '/system',         icon: WrenchScrewdriverIcon },
 ]
 
+function AlertsNavItem({ item }: { item: NavItem }) {
+  const Icon = item.icon!
+  const { data } = useQuery({
+    queryKey: ['admin', 'alerts', 'unread'],
+    queryFn: alertsApi.unreadCount,
+    refetchInterval: 15_000,
+  })
+  const count = data?.count ?? 0
+
+  return (
+    <NavLink
+      to={item.to!}
+      className={({ isActive }) =>
+        cn('flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+          isActive ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-100')
+      }
+    >
+      <Icon className="w-4 h-4 shrink-0" />
+      <span className="flex-1 text-left">{item.label}</span>
+      {count > 0 && (
+        <span className="min-w-5 h-5 px-1.5 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center">
+          {count > 99 ? '99+' : count}
+        </span>
+      )}
+    </NavLink>
+  )
+}
+
 function SidebarItem({ item }: { item: NavItem }) {
   const [open, setOpen] = useState(false)
   const Icon = item.icon
+
+  // Alerts carries a live unread badge.
+  if (item.label === 'Alerts') {
+    return <AlertsNavItem item={item} />
+  }
 
   if (item.children) {
     return (

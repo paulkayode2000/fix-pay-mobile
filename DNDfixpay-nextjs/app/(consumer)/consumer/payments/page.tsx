@@ -1,8 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { paymentsService } from '@/lib/services'
 import { formatNaira } from '@/lib/format'
+import {
+  type ValidityCategory,
+  type GroupedVariations,
+  CATEGORY_LABELS,
+  groupVariations,
+  activeCategories,
+} from '@/lib/categorize-variations'
 
 interface Variation {
   variation_code: string
@@ -29,6 +36,17 @@ export default function PaymentsPage() {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState<string | null>(null)
   const [error, setError] = useState('')
+
+  // ── Categorisation tab state ───────────────────────────────────────────────
+  const [activeTab, setActiveTab] = useState<ValidityCategory>('daily')
+  const grouped: GroupedVariations = useMemo(() => groupVariations(variations), [variations])
+  const tabs = useMemo(() => activeCategories(grouped), [grouped])
+
+  useEffect(() => {
+    if (tabs.length > 0 && !tabs.includes(activeTab)) {
+      setActiveTab(tabs[0])
+    }
+  }, [tabs, activeTab])
 
   async function loadVariations(id: string) {
     setServiceId(id)
@@ -86,24 +104,46 @@ export default function PaymentsPage() {
         ))}
       </div>
 
-      {/* Variations */}
+      {/* Variations - grouped by validity category */}
       {variations.length > 0 && (
-        <div className="mb-4 space-y-1">
-          {variations.map(v => (
-            <button
-              key={v.variation_code}
-              onClick={() => setSelected(v)}
-              className={
-                'flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm ' +
-                (selected?.variation_code === v.variation_code
-                  ? 'border-green-500 bg-green-50 text-green-700'
-                  : 'bg-white text-gray-700')
-              }
-            >
-              <span>{v.name}</span>
-              <span className="font-semibold">{formatNaira(parseFloat(v.variation_amount) * 100)}</span>
-            </button>
-          ))}
+        <div className="mb-4">
+          {/* Category tabs — only show when there's more than one */}
+          {tabs.length > 1 && (
+            <div className="flex gap-1.5 mb-3 overflow-x-auto">
+              {tabs.map(cat => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setActiveTab(cat)}
+                  className={
+                    'px-4 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap ' +
+                    (activeTab === cat
+                      ? 'bg-green-600 text-white'
+                      : 'bg-white text-gray-500 border border-gray-200')
+                  }
+                >
+                  {CATEGORY_LABELS[cat]}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="space-y-1">
+            {grouped[activeTab].map(v => (
+              <button
+                key={v.variation_code}
+                onClick={() => setSelected(v)}
+                className={
+                  'flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm ' +
+                  (selected?.variation_code === v.variation_code
+                    ? 'border-green-500 bg-green-50 text-green-700'
+                    : 'bg-white text-gray-700')
+                }
+              >
+                <span>{v.name}</span>
+                <span className="font-semibold">{formatNaira(parseFloat(v.variation_amount) * 100)}</span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

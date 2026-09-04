@@ -43,6 +43,7 @@ const SendScreen = lazy(() => import('@/modules/send/SendScreen').then(m => ({ d
 const WalletScreen            = lazy(() => import('@/modules/wallet/WalletScreen').then(m => ({ default: m.WalletScreen })))
 const FundWalletScreen        = lazy(() => import('@/modules/wallet/FundWalletScreen').then(m => ({ default: m.FundWalletScreen })))
 const TransactionDetailScreen = lazy(() => import('@/modules/wallet/TransactionDetailScreen').then(m => ({ default: m.TransactionDetailScreen })))
+const NinePsbOnboardingScreen = lazy(() => import('@/modules/wallet/NinePsbOnboardingScreen').then(m => ({ default: m.NinePsbOnboardingScreen })))
 
 // More
 const MoreScreen          = lazy(() => import('@/modules/more/MoreScreen').then(m => ({ default: m.MoreScreen })))
@@ -133,6 +134,7 @@ const router = createBrowserRouter([
               { path: 'payments/pending',      element: <PendingScreen /> },
               { path: 'wallet/fund',                element: <FundWalletScreen /> },
               { path: 'wallet/transactions/:id',  element: <TransactionDetailScreen /> },
+              { path: 'ninepsb/onboarding', element: <NinePsbOnboardingScreen /> },
               { path: 'more/profile',             element: <ProfileScreen /> },
               { path: 'more/security',            element: <SecurityScreen /> },
               { path: 'more/mandates',         element: <MandatesScreen /> },

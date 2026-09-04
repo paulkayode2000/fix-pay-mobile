@@ -157,7 +157,7 @@ export function RepeatPaymentBottomSheet({ tx, open, onClose }: RepeatPaymentBot
       <div className={showPin ? "" : "px-4 pt-2 pb-6 flex flex-col"}>
         {showPin ? (
           <div className="px-2 pt-2 pb-4">
-             <PinPad value={pin} onChange={handlePinChange} error={pinError} disabled={isProcessing} />
+             <PinPad value={pin} onChange={handlePinChange} error={pinError} disabled={isProcessing} scrambled />
           </div>
         ) : loadingDetails ? (
           <div className="flex flex-col items-center justify-center py-10">

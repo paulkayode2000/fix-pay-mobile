@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { BalanceCard } from '@/components/feature/BalanceCard'
 import { ServiceGrid } from '@/components/feature/ServiceGrid'
 import { WalletPromoCard } from '@/components/feature/WalletPromoCard'
+import { NinePsbPromoCard } from '@/components/feature/NinePsbPromoCard'
 import { TransactionItem, txIcon } from '@/components/feature/TransactionItem'
 import { TransactionDetailsBottomSheet } from '@/components/feature/TransactionDetailsBottomSheet'
 import { RepeatPaymentBottomSheet } from '@/components/feature/RepeatPaymentBottomSheet'
@@ -44,6 +45,9 @@ export function HomeScreen() {
 
       {/* Wallet promo — primary funnel to KYC + wallet creation */}
       {showWalletPromo && <WalletPromoCard />}
+
+      {/* 9PSB wallet promo — shows after KYC, nudges to create 9PSB wallet */}
+      <NinePsbPromoCard />
 
       {/* Quick services */}
       <section className="px-4 mt-5 animate-slide-up">

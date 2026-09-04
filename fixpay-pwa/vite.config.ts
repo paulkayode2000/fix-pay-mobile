@@ -34,6 +34,8 @@ const pwaPlugin = VitePWA({
   },
 })
 
+const backendTarget = process.env.VITE_API_PROXY_TARGET || 'http://127.0.0.1:8000'
+
 export default defineConfig(({ command }) => ({
   plugins: [
     react(),
@@ -46,11 +48,11 @@ export default defineConfig(({ command }) => ({
   server: {
     port: 5273,
     host: true,
-    // Proxy /api and /sanctum to Laravel backend (port 8001).
+    // Proxy /api and /sanctum to the Laravel backend (see backendTarget above).
     // This eliminates CORS — browser sees same-origin requests.
     proxy: {
-      '/api': { target: 'http://127.0.0.1:8001', changeOrigin: true },
-      '/sanctum': { target: 'http://127.0.0.1:8001', changeOrigin: true },
+      '/api': { target: backendTarget, changeOrigin: true },
+      '/sanctum': { target: backendTarget, changeOrigin: true },
     },
   },
   optimizeDeps: {

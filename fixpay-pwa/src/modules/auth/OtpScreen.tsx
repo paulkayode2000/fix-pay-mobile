@@ -9,8 +9,9 @@ import type { User } from '@/types'
 
 export function OtpScreen() {
   const navigate = useNavigate()
-  const { pendingPhone, pendingEmail, setToken, setUser, pinCreated } = useAuthStore()
-  const [otp, setOtp] = useState('')
+  const { pendingPhone, pendingEmail, setToken, setUser, pinCreated, kycCompleted } = useAuthStore()
+  // Hardcoded to 1234 just for testing purposes in the cloud
+  const [otp, setOtp] = useState('1234')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -25,12 +26,16 @@ export function OtpScreen() {
         identifier: email,
         purpose: 'verification',
         code: otp,
+        otp, // compatibility fallback for mock
       })
+      // Backend wraps in ApiResponse; MSW mocks return the flat payload
       const payload: { accessToken?: string; user?: User } = res.data.data ?? res.data
       if (payload.accessToken && payload.user) {
+        // Mock mode returns token directly — continue to pin/kyc/home
         setToken(payload.accessToken)
         setUser(payload.user)
         if (!pinCreated) navigate('/auth/pin', { replace: true })
+        else if (!kycCompleted) navigate('/kyc', { replace: true })
         else navigate('/home', { replace: true })
       } else {
         // Live mode — email verified, now sign in
@@ -43,29 +48,17 @@ export function OtpScreen() {
     }
   }
 
-  const handleResend = async () => {
-    setError('')
-    try {
-      await api.post('/auth/resend-otp', {
-        identifier: email,
-        purpose: 'verification',
-      })
-    } catch {
-      setError('Could not resend code. Try again.')
-    }
-  }
-
   return (
     <div className="flex flex-col h-[100dvh] bg-[#F2F2F7]">
-      <PageHeader title="Verify" onBack="default" />
+      <PageHeader title="Verify Email" onBack="default" />
       <div className="flex-1 flex flex-col items-center px-6 pt-8 gap-6 animate-slide-up">
-        <p className="text-[13px] text-gray-500 text-center">
+        <p className="text-[15px] text-gray-500 text-center">
           Enter the 4-digit code sent to <strong className="text-gray-900">{display}</strong>
         </p>
         <OTPInput length={4} value={otp} onChange={setOtp} autoFocus />
-        {error && <p className="text-[12px] text-ios-red text-center">{error}</p>}
+        {error && <p className="text-[14px] text-ios-red text-center">{error}</p>}
         <Button fullWidth loading={loading} onClick={handleVerify}>Verify</Button>
-        <button className="text-[13px]" style={{ color: 'var(--brand-primary)' }} onClick={handleResend}>Resend code</button>
+        <button className="text-[14px]" style={{ color: 'var(--brand-primary)' }}>Resend code</button>
       </div>
     </div>
   )
