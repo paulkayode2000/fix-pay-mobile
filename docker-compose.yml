@@ -11,7 +11,9 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      # Debug escape hatch only — canonical access is via the Traefik ingress.
+      # Moved off 5432 to avoid host-PG conflicts.
+      - "5433:5432"
     restart: unless-stopped
 
   # Backend PHP-FPM Container
@@ -44,13 +46,12 @@ services:
       - backend
     restart: unless-stopped
 
-  # Frontend Web Server (PWA)
+  # Frontend Web Server (PWA) — served through the Traefik ingress at
+  # app.fixpay.test. No direct host port (Traefik owns :80).
   frontend:
     build:
       context: ./fixpay-pwa
       dockerfile: Dockerfile
-    ports:
-      - "80:80"
     restart: unless-stopped
 
 volumes:

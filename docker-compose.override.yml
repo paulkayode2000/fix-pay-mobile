@@ -1,0 +1,59 @@
+version: '3.8'
+
+# fixpay-mobile override — run the stack on the shared tms_default ingress
+# network with stable container names. All inter-service traffic uses Docker
+# DNS names on tms_default (never host ports); the Traefik router forwards
+# api.fixpay.test -> fixpay-api-webserver:80 and app.fixpay.test ->
+# fixpay-frontend:80.
+
+services:
+  db:
+    container_name: fixpay-db
+    networks:
+      - tms_default
+
+  backend:
+    container_name: fixpay-backend
+    networks:
+      - tms_default
+
+  api_webserver:
+    container_name: fixpay-api-webserver
+    networks:
+      - tms_default
+
+  frontend:
+    container_name: fixpay-frontend
+    networks:
+      - tms_default
+    ports:
+      # Host-browser escape hatch for the PWA (ingress: app.fixpay.test).
+      # 8081 is payfixy-frontend; 8082 is the fixpay PWA.
+      - "8082:80"
+
+  # Laravel queue worker — processes the async AntifraudScoreJob /
+  # TransactionAmlScreenJob dispatches so TMS risk/AML tagging actually runs
+  # (QUEUE_CONNECTION=database; without a worker jobs pile up and
+  # risk_assessments stays empty).
+  queue-worker:
+    image: fixpay-mobile-backend
+    container_name: fixpay-queue-worker
+    restart: unless-stopped
+    command: php artisan queue:work --sleep=3 --tries=3 --timeout=90
+    volumes:
+      - ./fixpay-laravel:/var/www
+    environment:
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: fixpay
+      DB_USERNAME: fixpayuser
+      DB_PASSWORD: secretpassword
+    depends_on:
+      - db
+    networks:
+      - tms_default
+
+networks:
+  tms_default:
+    external: true
