@@ -13,7 +13,7 @@ jobs:
     name: Test and Build
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -36,7 +36,7 @@ jobs:
         run: php artisan test
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '20'
 
@@ -49,7 +49,7 @@ jobs:
         run: npm run build
 
       - name: Archive Production Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pwa-dist
           path: fixpay-pwa/dist
@@ -60,25 +60,30 @@ jobs:
     name: Deploy to OCI
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Download Built PWA
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: pwa-dist
           path: fixpay-pwa/dist
 
       - name: Prepare server permissions for SCP
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.OCI_HOST_IP }}
           username: ubuntu
           key: ${{ secrets.OCI_SSH_KEY }}
           script: |
-            sudo chown -R ubuntu:ubuntu /var/www/fixpay/fixpay-laravel/storage || true
+            if [ -d "/var/www/fixpay" ]; then
+              cd /var/www/fixpay
+              docker compose down || true
+            fi
+            sudo mkdir -p /var/www/fixpay
+            sudo chown -R ubuntu:ubuntu /var/www/fixpay
 
       - name: Copy files via SCP
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.OCI_HOST_IP }}
           username: ubuntu
@@ -88,7 +93,7 @@ jobs:
           exclude: "fixpay-laravel/vendor,fixpay-pwa/node_modules,fixpay-laravel/.env"
 
       - name: Deploy with Docker Compose
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.OCI_HOST_IP }}
           username: ubuntu
