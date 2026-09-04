@@ -61,6 +61,25 @@ logs/
 *.pfx
 secrets/
 
+# ─── Local on-device state / temp copies / run artifacts (never commit) ──
+.env*.bak
+.env.bak*
+.env.*.bak
+*.bak
+.fixpay-services-state.json
+scratch/
+front/
+front-temp/
+marble-frontend-temp/
+/tx-*.out
+gateway-e2e-results*.json
+gateway-tms-e2e-results.json
+java-gateway-e2e-results.json
+java-gateway-retest-results.json
+java-scoped-identity-results.json
+fixpay-laravel/value
+fixpay-laravel/value('ninepsb_account_number')')
+
 *.txt
 *.credentials
 .env.test
