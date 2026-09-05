@@ -55,6 +55,103 @@ the Laravel API must be reachable from the device and allow the WebView origins
 (`capacitor://localhost` iOS, `https://localhost` Android) in
 `fixpay-laravel/config/cors.php`.
 
+## Test on a real device (same Wi-Fi)
+
+> Android can be built on any OS. **iOS can only be built on macOS** — on Windows,
+> test the Android build and use the same steps on a Mac for iOS.
+
+### 0. Prerequisites
+
+1. Phone and PC on the **same network**.
+2. Find your PC's LAN IPv4 address: `ipconfig` → e.g. `192.168.1.5`.
+3. Make sure the Laravel backend is reachable on that address, not just 127.0.0.1:
+   ```bash
+   php artisan serve --host 0.0.0.0 --port 8000
+   ```
+   (If Laravel runs in Docker, publish the port to `0.0.0.0`.)
+4. Android: enable Developer options + **USB debugging** on the phone, plug it in,
+   accept the prompt, and confirm it is visible:
+   ```bash
+   adb devices
+   ```
+5. If Windows Firewall prompts about Node/php, allow it on **private** networks.
+
+### Option A — Bundled native build (validates exactly what will ship) ✅ recommended
+
+Builds the native bundle against your PC's API and runs the **real installed app**:
+
+```powershell
+# From fixpay-native/
+$env:VITE_API_URL = 'http://192.168.1.5:8000/api'   # overrides .env.native for this shell only
+npm run build:web                                    # vite build --mode native (in fixpay-pwa)
+
+$env:CAP_CLEARTEXT = 'true'                          # allow http:// to the LAN backend (dev only)
+npx cap run android                                  # sync + gradle build + install + launch
+# multiple devices? -> npx cap run android --target <device-id-from-adb>
+```
+
+Notes:
+
+- The phone's WebView origin is `https://localhost`, which is already on the Laravel
+  CORS allow-list — token auth works out of the box.
+- **Revert** the two `$env:` overrides when you're done; they must never be set for release.
+- No need to edit `.env.native` — Vite gives process env higher priority than env files.
+
+### Option B — Live-reload against the Vite dev server (fast UI iteration)
+
+Lets you edit the PWA source and see changes instantly in the native shell:
+
+```powershell
+# Terminal 1 — fixpay-pwa/ (dev server is already host:true / port 5273)
+npm run dev
+
+# Terminal 2 — fixpay-native/
+$env:CAP_DEV_URL = 'http://192.168.1.5:5273'         # load the dev server instead of the bundle
+npx cap run android
+```
+
+Notes:
+
+- Requests go through the Vite proxy (`/api` → Laravel), so **no CORS changes** are needed.
+- Option B does NOT exercise the native-mode build (no service worker, token auth, 401
+  event) — use Option A to validate those.
+
+### USB-only alternative (no Wi-Fi config): `adb reverse`
+
+Skip LAN IPs entirely by tunneling the phone's localhost to your PC over USB:
+
+```powershell
+adb reverse tcp:8000 tcp:8000    # phone localhost:8000 -> PC 127.0.0.1:8000
+adb reverse tcp:5273 tcp:5273    # (only needed for Option B live reload)
+
+$env:VITE_API_URL = 'http://localhost:8000/api'
+$env:CAP_CLEARTEXT = 'true'
+npx cap run android
+```
+
+### Debugging the app on the phone
+
+- Open **`chrome://inspect`** on the PC, find the FixPay WebView, and get full
+  DevTools (console, network, React) — Capacitor enables it automatically for debug builds.
+- Backend logs appear in the Laravel console; verify each request carries the
+  `Authorization: Bearer fixpay|…` header (the `fixpay` prefix comes from
+  `SANCTUM_TOKEN_PREFIX`).
+
+### iOS (macOS only)
+
+The steps are identical, but two extras apply:
+
+1. `NSAppTransportSecurity` → to load the plain-http dev server/API during testing,
+   temporarily add to `ios/App/App/Info.plist`:
+   ```xml
+   <key>NSAppTransportSecurity</key>
+   <dict>
+     <key>NSAllowsLocalNetworking</key>
+     <true/>
+   </dict>
+   ```
+2. Use `npm run sync:ios` + `npx cap run ios --target <device>` from a Mac.
+
 ## Production / release notes
 
 1. `VITE_API_URL` in `.env.native` must point at the deployed Laravel API
