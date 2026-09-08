@@ -12,6 +12,7 @@ use App\Services\Payment\ProcessorRegistry;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Admin API for payment rails, processor health, fee schedules, plugins,
@@ -490,15 +491,25 @@ class RailsAdminController extends Controller
 
     private function writeAudit(string $entityType, string $entityId, string $action, ?array $old, ?array $new): void
     {
-        PaymentRailAuditLog::create([
-            'entity_type' => $entityType,
-            'entity_id'   => $entityId,
-            'action'      => $action,
-            'admin_id'    => auth()->id(),
-            'old_json'    => $old,
-            'new_json'    => $new,
-            'ip_address'  => request()->ip(),
-        ]);
+        try {
+            PaymentRailAuditLog::create([
+                'entity_type' => $entityType,
+                'entity_id'   => $entityId,
+                'action'      => $action,
+                'admin_id'    => auth()->id(),
+                'old_json'    => $old,
+                'new_json'    => $new,
+                'ip_address'  => request()->ip(),
+            ]);
+        } catch (\Throwable $e) {
+            // The audit trail must never block the underlying config change.
+            Log::warning('Failed to persist payment rail audit entry', [
+                'entity_type' => $entityType,
+                'entity_id'   => $entityId,
+                'action'      => $action,
+                'error'       => $e->getMessage(),
+            ]);
+        }
     }
 
     private function normalizeConfig(mixed $value): array
