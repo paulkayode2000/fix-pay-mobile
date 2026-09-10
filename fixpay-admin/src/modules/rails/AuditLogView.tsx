@@ -86,6 +86,75 @@ function formatValue(value: unknown): string {
   }
 }
 
+// ── CSV export ──────────────────────────────────────────────────────────────
+
+/** The API caps `size` at 100, so export walks pages until totalElements is reached. */
+const EXPORT_PAGE_SIZE = 100
+const EXPORT_MAX_PAGES = 100 // safety bound
+
+async function fetchAllEntries(railId: string | undefined): Promise<AuditLogEntry[]> {
+  const all: AuditLogEntry[] = []
+  for (let page = 0; page < EXPORT_MAX_PAGES; page++) {
+    const res = railId
+      ? await railApi.getEntityAuditLog(railId, page, EXPORT_PAGE_SIZE)
+      : await railApi.getAuditLog(page, EXPORT_PAGE_SIZE)
+    all.push(...res.content)
+    if (res.content.length === 0 || all.length >= res.totalElements) break
+  }
+  return all
+}
+
+function csvCell(value: unknown): string {
+  const text = value === null || value === undefined ? '' : String(value)
+  return `"${text.replace(/"/g, '""')}"`
+}
+
+function describeChanges(entry: AuditLogEntry): string {
+  const changes = changesOf(parseState(entry.beforeStateJson), parseState(entry.afterStateJson))
+  return changes
+    .map(change => {
+      if (change.kind === 'added') return `+ ${change.key} = ${formatValue(change.after)}`
+      if (change.kind === 'removed') return `- ${change.key} = ${formatValue(change.before)}`
+      return `${change.key}: ${formatValue(change.before)} -> ${formatValue(change.after)}`
+    })
+    .join('; ')
+}
+
+function toCsv(entries: AuditLogEntry[]): string {
+  const header = [
+    'Timestamp', 'Action', 'EntityType', 'EntityId', 'AdminUserId',
+    'IpAddress', 'FieldsChanged', 'Changes', 'BeforeStateJson', 'AfterStateJson',
+  ]
+  const rows = entries.map(entry => {
+    const changeCount = changesOf(parseState(entry.beforeStateJson), parseState(entry.afterStateJson)).length
+    return [
+      entry.createdAt,
+      entry.action,
+      entry.entityType,
+      entry.entityId ?? '',
+      entry.adminUserId ?? '',
+      entry.ipAddress ?? '',
+      changeCount,
+      describeChanges(entry),
+      entry.beforeStateJson ?? '',
+      entry.afterStateJson ?? '',
+    ].map(csvCell).join(',')
+  })
+  return [header.map(csvCell).join(','), ...rows].join('\r\n')
+}
+
+function downloadCsv(filename: string, csv: string): void {
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
 function AuditEntryRow({ entry }: { entry: AuditLogEntry }) {
   const before = parseState(entry.beforeStateJson)
   const after = parseState(entry.afterStateJson)
@@ -152,6 +221,29 @@ function AuditEntryRow({ entry }: { entry: AuditLogEntry }) {
 export function AuditLogView({ railId }: Props) {
   const [page, setPage] = useState(0)
   const pageSize = 20
+  const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
+
+  const handleExport = async () => {
+    setExporting(true)
+    setExportError(null)
+    try {
+      const all = await fetchAllEntries(railId)
+      if (all.length === 0) {
+        setExportError('Nothing to export.')
+        return
+      }
+      const stamp = new Date().toISOString().slice(0, 10)
+      const filename = railId
+        ? `rail-${railId.slice(0, 8)}-audit-${stamp}.csv`
+        : `rail-audit-${stamp}.csv`
+      downloadCsv(filename, toCsv(all))
+    } catch (err) {
+      setExportError((err as Error).message)
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['admin', 'audit', railId ?? 'all', page],
@@ -171,7 +263,16 @@ export function AuditLogView({ railId }: Props) {
         <h3 className="text-sm font-semibold text-slate-700">
           {railId ? 'Rail Audit Log' : 'All Changes'} ({total})
         </h3>
+        <button
+          onClick={handleExport}
+          disabled={exporting || total === 0}
+          className="text-xs px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 disabled:opacity-50"
+        >
+          {exporting ? 'Exporting…' : 'Export CSV'}
+        </button>
       </div>
+
+      {exportError && <p className="text-xs text-amber-600">{exportError}</p>}
 
       {isLoading && <p className="text-xs text-slate-500">Loading…</p>}
 
