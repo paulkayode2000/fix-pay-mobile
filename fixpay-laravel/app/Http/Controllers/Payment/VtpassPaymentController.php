@@ -99,7 +99,7 @@ class VtpassPaymentController extends Controller
     {
         $data = $request->validate([
             'service_id'        => 'required|string',
-            'amount_kobo'       => 'required|integer|min:100',
+            'amount_kobo'       => $this->amountKoboRules($request->input('service_id')),
             'phone'             => 'required|string',
             'billers_code'      => 'nullable|string',
             'variation_code'    => 'nullable|string',
@@ -186,5 +186,55 @@ class VtpassPaymentController extends Controller
             'completed_at' => $payment->completed_at,
             'failed_at' => $payment->failed_at,
         ]);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Amount bounds (server-side source of truth — see config/payments.php)
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Build the `amount_kobo` validation rules for the given service.
+     *
+     * The mobile app enforces per-service minimums/maximums on the client; the
+     * API must enforce the same policy so a direct caller cannot under- or
+     * over-shoot the limits (e.g. a ₦1 airtime purchase).
+     *
+     * @return array<int, string>
+     */
+    private function amountKoboRules(?string $serviceId): array
+    {
+        $bounds = $this->amountBounds($serviceId);
+
+        $rules = ['required', 'integer', 'min:'.$bounds['min']];
+
+        if ($bounds['max'] !== null) {
+            $rules[] = 'max:'.$bounds['max'];
+        }
+
+        return $rules;
+    }
+
+    /**
+     * Resolve the kobo bounds for a VTPass service id.
+     *
+     * @return array{min:int, max:int|null}
+     */
+    private function amountBounds(?string $serviceId): array
+    {
+        $defaults = ['min' => 100, 'max' => null];
+
+        if ($serviceId === null) {
+            return $defaults;
+        }
+
+        if (in_array($serviceId, (array) config('payments.airtime_services', []), true)) {
+            $key = 'airtime';
+        } elseif (in_array($serviceId, (array) config('payments.electricity_services', []), true)) {
+            $key = 'electricity';
+        } else {
+            $key = 'default';
+        }
+
+        return (array) config("payments.amount_bounds.{$key}", $defaults) + $defaults;
     }
 }
