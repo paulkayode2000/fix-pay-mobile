@@ -94,7 +94,10 @@ class GatewayClient
             'service_id'      => $serviceId,
             'amount'          => $amount,
             'phone'           => $phone,
-            'billersCode'     => $billersCode,
+            // Canonical neutral field is `billers_code` (snake_case). The gateway
+            // accepts `billersCode` only as a legacy fallback, so send the
+            // canonical key — this is what the switch/VTPass path reads.
+            'billers_code'    => $billersCode,
             'variation_code'  => $variationCode,
             // Canonical business reference forwarded to the gateway → TMS, so
             // /ingest and the async score job share ONE antifraud row.
@@ -123,7 +126,8 @@ class GatewayClient
             'service_id'      => $serviceId,
             'amount'          => $amount,
             'phone'           => $phone,
-            'billersCode'     => $billersCode,
+            // Send the canonical `billers_code` — see payBillWithWallet().
+            'billers_code'    => $billersCode,
             'variation_code'  => $variationCode,
             ...$extra,
         ], fn($v) => $v !== null);
