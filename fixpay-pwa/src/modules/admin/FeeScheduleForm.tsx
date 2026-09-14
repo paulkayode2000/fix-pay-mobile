@@ -22,7 +22,7 @@ export function FeeScheduleForm({ railId, onClose }: Props) {
     mutationFn: () => adminApi.addFee(railId, {
       feeType,
       fixedFeeKobo: parseInt(fixedFeeKobo || '0', 10),
-      percentageFee: parseFloat(percentageFee || '0'),
+      percentageFee: parseFloat(percentageFee || '0') / 100,
       capKobo: capKobo ? parseInt(capKobo, 10) : null,
       minFeeKobo: parseInt(minFeeKobo || '0', 10),
       effectiveFrom,
