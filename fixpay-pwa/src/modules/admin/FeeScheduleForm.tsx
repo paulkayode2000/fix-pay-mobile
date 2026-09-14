@@ -42,7 +42,7 @@ export function FeeScheduleForm({ railId, onClose }: Props) {
       <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
         <h2 className="text-lg font-semibold">Add Fee Schedule</h2>
         <p className="text-xs text-gray-500">
-          Fee = max(minFee, min(cap, fixedFee + amount × percentage))
+          Fee = min(cap, fixedFee + amount × percentage). Min Amount gates which tier applies.
         </p>
 
         <div className="space-y-1">
@@ -84,7 +84,7 @@ export function FeeScheduleForm({ railId, onClose }: Props) {
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
-            <label className="block text-sm font-medium">Min Fee (kobo)</label>
+            <label className="block text-sm font-medium">Min Amount (kobo)</label>
             <input
               type="number" min="0" value={minFeeKobo}
               onChange={e => setMinFeeKobo(e.target.value)}

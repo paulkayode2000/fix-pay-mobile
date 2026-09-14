@@ -145,7 +145,7 @@ function RailRow({ rail }: { rail: PaymentRailConfig }) {
                 <div className="text-gray-500">
                   {fee.fixedFeeKobo > 0 && `Fixed: ${naira(fee.fixedFeeKobo)} `}
                   {fee.percentageFee > 0 && `${(fee.percentageFee * 100).toFixed(4)}% `}
-                  {fee.minFeeKobo > 0 && `min ${naira(fee.minFeeKobo)} `}
+                  {fee.minFeeKobo > 0 && `min amount ${naira(fee.minFeeKobo)} `}
                   {fee.capKobo != null && `cap ${naira(fee.capKobo)}`}
                 </div>
                 <div className="text-gray-400">
