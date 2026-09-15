@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
-import { ChevronRightIcon, UserCircleIcon, BanknotesIcon, ExclamationTriangleIcon, ArrowRightStartOnRectangleIcon, ShieldCheckIcon, ChartBarIcon } from '@heroicons/react/24/outline'
+import { ChevronRightIcon, UserCircleIcon, BanknotesIcon, ExclamationTriangleIcon, ArrowRightStartOnRectangleIcon, ShieldCheckIcon, ChartBarIcon, WrenchScrewdriverIcon } from '@heroicons/react/24/outline'
 import { useAuthStore } from '@/store/auth.store'
+import { useIsPlatformAdmin } from '@/modules/admin/useIsPlatformAdmin'
 import { useTenantStore } from '@/store/tenant.store'
 import { serverLogout } from '@/lib/api'
 import { PageHeader } from '@/components/layout/PageHeader'
@@ -39,6 +40,7 @@ export function MoreScreen() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
   const { config } = useTenantStore()
+  const isPlatformAdmin = useIsPlatformAdmin()
   const { label, variant } = statusBadge(user?.kycStatus ?? 'pending')
 
   return (
@@ -69,6 +71,12 @@ export function MoreScreen() {
         <MenuItem icon={ChartBarIcon}        label="Analytics"       sub="Track your spending & income"     onClick={() => navigate('/more/analytics')} />
         <MenuItem icon={ExclamationTriangleIcon} label="Disputes"   sub="Raise & track disputes"           onClick={() => navigate('/more/disputes')} last />
       </div>
+
+      {isPlatformAdmin && (
+        <div className="mx-4 mt-4 rounded-[16px] overflow-hidden animate-slide-up border border-black/5">
+          <MenuItem icon={WrenchScrewdriverIcon} label="Platform Admin" sub="Payment rails & operations" onClick={() => navigate('/admin')} last />
+        </div>
+      )}
 
       <div className="mx-4 mt-4 rounded-[16px] overflow-hidden animate-slide-up border border-black/5">
         <MenuItem icon={ArrowRightStartOnRectangleIcon} label="Sign Out" variant="danger" onClick={() => { serverLogout().then(() => navigate('/welcome', { replace: true })) }} last />

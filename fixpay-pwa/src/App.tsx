@@ -11,6 +11,7 @@ import { AppShell } from '@/components/layout/AppShell'
 import { RouteErrorBoundary } from '@/components/layout/RouteErrorBoundary'
 import { SessionExpiryHandler } from '@/components/layout/SessionExpiryHandler'
 import { DuplicatePaymentModal } from '@/components/feature/DuplicatePaymentModal'
+import { useIsPlatformAdmin } from '@/modules/admin/useIsPlatformAdmin'
 
 // Auth
 const SplashScreen       = lazy(() => import('@/modules/auth/SplashScreen').then(m => ({ default: m.SplashScreen })))
@@ -56,6 +57,9 @@ const DisputeDetailScreen = lazy(() => import('@/modules/more/DisputeDetailScree
 const RaiseDisputeScreen  = lazy(() => import('@/modules/more/RaiseDisputeScreen').then(m => ({ default: m.RaiseDisputeScreen })))
 const AnalyticsScreen     = lazy(() => import('@/modules/more/AnalyticsScreen').then(m => ({ default: m.AnalyticsScreen })))
 
+// Platform admin console (users whose roles include 'admin')
+const AdminDashboard      = lazy(() => import('@/modules/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })))
+
 // ─── Guards ────────────────────────────────────────────────────────────────
 
 function RequireAuth() {
@@ -75,6 +79,24 @@ function RequireAuth() {
   // KYC is now voluntary. Users can freely use the app without verification.
   // KYC is only required when accessing wallet creation or high-limit features.
   return <Outlet />
+}
+
+/**
+ * Platform-admin gate.
+ *
+ * Requires an authenticated session but deliberately bypasses the consumer
+ * PIN/KYC onboarding steps enforced by RequireAuth — platform admins are a
+ * separate persona and should not be pushed through consumer setup.
+ */
+function RequireAdmin({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, _hasHydrated } = useAuthStore()
+  const isPlatformAdmin = useIsPlatformAdmin()
+
+  if (!_hasHydrated) return null
+  if (!isAuthenticated) return <Navigate to="/auth/login" replace />
+  if (!isPlatformAdmin)  return <Navigate to="/home" replace />
+
+  return <>{children}</>
 }
 
 // ─── Tenant theme applier ──────────────────────────────────────────────────
@@ -150,6 +172,14 @@ const router = createBrowserRouter([
             ],
           },
         ],
+      },
+      {
+        path: '/admin',
+        element: (
+          <RequireAdmin>
+            <AdminDashboard />
+          </RequireAdmin>
+        ),
       },
       { path: '*', element: <Navigate to="/splash" replace /> },
     ]

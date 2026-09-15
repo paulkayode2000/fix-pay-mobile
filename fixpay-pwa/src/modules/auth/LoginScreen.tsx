@@ -57,6 +57,7 @@ export function LoginScreen() {
         lastName:  rawUser.last_name  ?? rawUser.lastName,
         tier:      rawUser.tier,
         kycStatus: rawUser.kyc_status ?? rawUser.kycStatus,
+        roles: Array.isArray(rawUser.roles) ? rawUser.roles : [],
         createdAt: rawUser.created_at ?? rawUser.createdAt,
       }
       setToken(accessToken)

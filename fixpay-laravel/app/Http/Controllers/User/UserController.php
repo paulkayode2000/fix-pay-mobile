@@ -22,6 +22,9 @@ class UserController extends Controller
             'kyc_status' => $user->kyc_status,
             'tier' => $user->tier,
             'status' => $user->status,
+            // Spatie role names — kept in sync with /auth/login so a profile
+            // refresh carries the same authoritative admin signal.
+            'roles' => $user->getRoleNames()->values()->all(),
             'email_verified_at' => $user->email_verified_at,
             'phone_verified_at' => $user->phone_verified_at,
             'wallet' => $user->wallet ? [

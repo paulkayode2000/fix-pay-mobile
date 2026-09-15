@@ -6,6 +6,11 @@ export interface User {
   lastName: string
   tier: 1 | 2 | 3
   kycStatus: 'pending' | 'partial' | 'verified' | 'rejected'
+  /**
+   * Spatie role names echoed by /auth/login (and /user/profile).
+   * 'admin' gates the platform admin console. Empty/absent for consumers.
+   */
+  roles?: string[]
   createdAt: string
 }
 

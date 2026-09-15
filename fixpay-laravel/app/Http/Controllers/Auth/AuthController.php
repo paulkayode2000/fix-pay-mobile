@@ -152,6 +152,10 @@ class AuthController extends Controller
                 'last_name'  => $user->last_name,
                 'kyc_status' => $user->kyc_status,
                 'tier'       => $user->tier,
+                // Spatie role names — the client uses 'admin' to gate the
+                // platform admin console. Nothing here is Keycloak/JWT-based:
+                // Sanctum tokens are opaque and roles live in the database.
+                'roles'      => $user->getRoleNames()->values()->all(),
             ],
         ]);
     }
