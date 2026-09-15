@@ -56,6 +56,9 @@ jobs:
 
   deploy:
     needs: test-and-build
+    # Manual-only release gate: a push runs the test/build job but never
+    # deploys. To release: Actions -> "Deploy to Oracle Cloud" -> Run workflow.
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     name: Deploy to OCI
     steps:
