@@ -139,7 +139,61 @@ class TransferService
         // Asynchronous TMS checks (antifraud + AML) — tag the transfer when done.
         $this->dispatchRiskJobs($transfer);
 
+        // Publish the events FixChat reconciles on (chat bubble + wallet projection).
+        $this->emitFixchatWebhooks($transfer, $user, $wallet, $recipient, $recipientWallet, $amountKobo);
+
         return $transfer;
+    }
+
+    /**
+     * Publish the wallet/transfer events FixChat consumes via fixpay-bridge.
+     *
+     * Best-effort by design: the ledger transaction above is already committed,
+     * so a dispatcher/queue failure must never surface as a failed transfer.
+     */
+    private function emitFixchatWebhooks(
+        Transfer $transfer,
+        AppUser $sender,
+        Wallet $senderWallet,
+        AppUser $recipient,
+        Wallet $recipientWallet,
+        int $amountKobo,
+    ): void {
+        try {
+            $dispatcher = app(\App\Services\Webhooks\WebhookDispatcher::class);
+            $tenantId = $transfer->tenant_id;
+
+            $dispatcher->dispatch('transfer.completed', [
+                'transfer_reference' => $transfer->transfer_reference,
+                'amount_kobo' => $amountKobo,
+                'sender_phone' => $sender->phone,
+                'recipient_phone' => $recipient->phone,
+                'narration' => $transfer->narration,
+            ], $tenantId);
+
+            $dispatcher->dispatch('wallet.debited', [
+                'wallet_id' => $senderWallet->id,
+                'phone' => $sender->phone,
+                'amount_kobo' => $amountKobo,
+                'balance_kobo' => (int) $senderWallet->fresh()->balance_kobo,
+                'reference' => $transfer->transfer_reference,
+                'description' => $transfer->narration,
+            ], $tenantId);
+
+            $dispatcher->dispatch('wallet.credited', [
+                'wallet_id' => $recipientWallet->id,
+                'phone' => $recipient->phone,
+                'amount_kobo' => $amountKobo,
+                'balance_kobo' => (int) $recipientWallet->fresh()->balance_kobo,
+                'reference' => $transfer->transfer_reference,
+                'description' => $transfer->narration,
+            ], $tenantId);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('FixChat webhook dispatch failed', [
+                'transfer_reference' => $transfer->transfer_reference,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
@@ -149,7 +203,7 @@ class TransferService
     private function dispatchRiskJobs(\App\Models\Transfer $transfer): void
     {
         try {
-            \App\Jobs\AntifraudScoreJob::dispatch($transfer, request()->header('X-Device-Id', ''));
+            \App\Jobs\AntifraudScoreJob::dispatch($transfer, \App\Support\DeviceId::fromRequest());
             \App\Jobs\TransactionAmlScreenJob::dispatch($transfer);
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::warning('Failed to dispatch TMS risk jobs for transfer', [

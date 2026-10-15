@@ -11,6 +11,7 @@ use App\Http\Controllers\Mandate\MandateController;
 use App\Http\Controllers\Payment\VtpassPaymentController;
 use App\Http\Controllers\Payment\AlternativePaymentController;
 use App\Http\Controllers\Portal\ApiKeyController;
+use App\Http\Controllers\Portal\ConsumerController;
 use App\Http\Controllers\Portal\IpWhitelistController;
 use App\Http\Controllers\Portal\KybController;
 use App\Http\Controllers\Portal\PortalRegistrationController;
@@ -172,6 +173,26 @@ Route::prefix('portal')->middleware(['api.key', 'tenant', 'ip.whitelist'])->grou
     Route::prefix('settlement')->group(function () {
         Route::get('/', [SettlementController::class, 'show']);
         Route::post('/', [SettlementController::class, 'upsert']);
+    });
+
+    // ── FixChat bridge: consumer endpoints (see fixchat/fixpay-bridge/README.md) ──
+    // Static paths first so they are never shadowed by the {phone} routes.
+    Route::prefix('consumers')->group(function () {
+        // Identity
+        Route::get('lookup', [ConsumerController::class, 'lookup']);
+        Route::post('otp/send', [ConsumerController::class, 'sendOtp']);
+        Route::post('otp/verify', [ConsumerController::class, 'verifyOtp']);
+
+        // Bills (VTpass) — service catalogue + name enquiry (no consumer needed)
+        Route::get('payments/vtpass/services', [ConsumerController::class, 'services']);
+        Route::get('payments/vtpass/variations', [ConsumerController::class, 'variations']);
+        Route::post('payments/vtpass/verify', [ConsumerController::class, 'verifyBill']);
+
+        // Consumer-scoped paths
+        Route::get('{phone}/wallet', [ConsumerController::class, 'wallet']);
+        Route::get('{phone}/transactions', [ConsumerController::class, 'transactions']);
+        Route::post('{phone}/transfers/wallet', [ConsumerController::class, 'transferWallet']);
+        Route::post('{phone}/payments/vtpass', [ConsumerController::class, 'payBill']);
     });
 
     Route::get('profile', [TenantPortalController::class, 'profile']);

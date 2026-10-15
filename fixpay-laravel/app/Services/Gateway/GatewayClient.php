@@ -230,7 +230,9 @@ class GatewayClient
     private function authHeaders(): array
     {
         $userId = auth()->id();
-        $deviceId = request()->header('X-Device-Id', '');
+        // Normalised so a duplicated header spelling ("dev-01, dev-01") never
+        // reaches TMS as the correlation key.
+        $deviceId = \App\Support\DeviceId::fromRequest();
 
         return [
             'Authorization' => 'Bearer ' . $this->secretKey,
