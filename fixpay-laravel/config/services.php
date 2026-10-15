@@ -82,6 +82,11 @@ return [
         'secret_key'  => env('PAYFIXY_GATEWAY_SECRET_KEY', ''),
         'business_id' => env('PAYFIXY_GATEWAY_BUSINESS_ID', ''),
         'enabled'     => env('PAYFIXY_GATEWAY_ENABLED', false),
+        // Rail used by the "Pay with Payfixy" option on a bill screen. The
+        // gateway does the channel routing for this merchant; change this to
+        // 'card', 'bank_transfer' or 'ussd' to force a specific channel without
+        // an app release. No wallet is involved either way.
+        'alternative_payment_method' => env('PAYFIXY_ALTERNATIVE_PAYMENT_METHOD', 'payfixy'),
         // Directory scanned for hot-loadable processor plugins (JAR/ZIP).
         'plugins_dir' => env('PAYFIXY_PLUGINS_DIR', base_path('plugins')),
     ],

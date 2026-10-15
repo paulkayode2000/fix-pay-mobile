@@ -85,4 +85,13 @@ class AppUser extends Authenticatable
     {
         return $this->kyc_status === 'VERIFIED';
     }
+
+    /**
+     * Wallets are OPTIONAL: an account can exist, pay bills and subscribe
+     * without one. Only an ACTIVE wallet can fund wallet-rail transactions.
+     */
+    public function hasActiveWallet(): bool
+    {
+        return $this->wallet !== null && $this->wallet->status === 'ACTIVE';
+    }
 }

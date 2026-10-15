@@ -2,6 +2,7 @@
 
 namespace App\Services\Risk;
 
+use App\Models\AlternativePayment;
 use App\Models\AppUser;
 use App\Models\RiskAlert;
 use App\Models\RiskAssessment;
@@ -252,6 +253,10 @@ class RiskTagService
         }
 
         if ($entity instanceof VtpassPayment) {
+            return 'payment '.$entity->payment_reference;
+        }
+
+        if ($entity instanceof AlternativePayment) {
             return 'payment '.$entity->payment_reference;
         }
 

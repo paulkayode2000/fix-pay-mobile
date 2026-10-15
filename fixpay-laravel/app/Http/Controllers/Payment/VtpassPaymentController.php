@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Payment;
 
 use App\Http\Controllers\Controller;
 use App\Services\Payment\VtpassService;
+use App\Support\BillAmounts;
 use GuzzleHttp\Client;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -130,7 +131,7 @@ class VtpassPaymentController extends Controller
 
         // Asynchronous TMS checks (antifraud + AML) — tag the payment when done.
         try {
-            \App\Jobs\AntifraudScoreJob::dispatch($payment, request()->header('X-Device-Id', ''));
+            \App\Jobs\AntifraudScoreJob::dispatch($payment, \App\Support\DeviceId::fromRequest());
             \App\Jobs\TransactionAmlScreenJob::dispatch($payment);
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::warning('Failed to dispatch TMS risk jobs for payment', [
@@ -197,21 +198,15 @@ class VtpassPaymentController extends Controller
      *
      * The mobile app enforces per-service minimums/maximums on the client; the
      * API must enforce the same policy so a direct caller cannot under- or
-     * over-shoot the limits (e.g. a ₦1 airtime purchase).
+     * over-shoot the limits (e.g. a ₦1 airtime purchase). The policy itself
+     * lives in App\Support\BillAmounts so the non-wallet Payfixy rail in
+     * AlternativePaymentController cannot drift from it.
      *
      * @return array<int, string>
      */
     private function amountKoboRules(?string $serviceId): array
     {
-        $bounds = $this->amountBounds($serviceId);
-
-        $rules = ['required', 'integer', 'min:'.$bounds['min']];
-
-        if ($bounds['max'] !== null) {
-            $rules[] = 'max:'.$bounds['max'];
-        }
-
-        return $rules;
+        return BillAmounts::rules($serviceId);
     }
 
     /**
@@ -221,20 +216,6 @@ class VtpassPaymentController extends Controller
      */
     private function amountBounds(?string $serviceId): array
     {
-        $defaults = ['min' => 100, 'max' => null];
-
-        if ($serviceId === null) {
-            return $defaults;
-        }
-
-        if (in_array($serviceId, (array) config('payments.airtime_services', []), true)) {
-            $key = 'airtime';
-        } elseif (in_array($serviceId, (array) config('payments.electricity_services', []), true)) {
-            $key = 'electricity';
-        } else {
-            $key = 'default';
-        }
-
-        return (array) config("payments.amount_bounds.{$key}", $defaults) + $defaults;
+        return BillAmounts::bounds($serviceId);
     }
 }

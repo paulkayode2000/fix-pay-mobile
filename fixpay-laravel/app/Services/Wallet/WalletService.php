@@ -39,7 +39,7 @@ class WalletService
                 'reference' => 'mock_va_' . time(),
             ];
 
-            return Wallet::create([
+            $wallet = Wallet::create([
                 'user_id' => $user->id,
                 'tenant_id' => $user->tenant_id,
                 'balance_kobo' => 0,
@@ -52,6 +52,12 @@ class WalletService
                 'virtual_account_bank_code' => $vaData['bank_code'],
                 'virtual_account_reference' => $vaData['reference'],
             ]);
+
+            // The (temporary) welcome bonus follows wallet creation, since
+            // registration no longer opens a wallet.
+            $this->grantWelcomeBonusIfEnabled($wallet);
+
+            return $wallet;
         });
     }
 
@@ -76,28 +82,70 @@ class WalletService
         );
 
         return DB::transaction(function () use ($user, $vaData) {
-            return Wallet::create([
-                'user_id' => $user->id,
-                'tenant_id' => $user->tenant_id,
-                'balance_kobo' => 0,
-                'ledger_balance_kobo' => 0,
-                'currency' => 'NGN',
-                'status' => 'ACTIVE',
-                'wallet_provider' => 'ninepsb',
-                'virtual_account_number' => $vaData['account_number'],
-                'virtual_account_bank' => $vaData['bank'],
-                'virtual_account_bank_code' => $vaData['bank_code'],
-                'virtual_account_reference' => $vaData['reference'],
-                'ninepsb_account_number' => $vaData['account_number'],
-                'ninepsb_customer_id' => $vaData['customer_id'],
-                'ninepsb_order_ref' => $vaData['order_ref'],
-                'ninepsb_tier' => '1',
-                'ninepsb_metadata' => [
-                    'full_name' => $vaData['full_name'],
-                    'raw_response' => $vaData['raw'] ?? null,
-                ],
-            ]);
+            // A wallet row is unique per user (`wallets_user_id_unique`), so
+            // 9PSB onboarding ADOPTS any existing row instead of inserting a
+            // second one. (The controller closes the old provider's wallet
+            // first; inserting a new row here used to violate the constraint and
+            // 500 wallet creation for users who already had one.)
+            $wallet = Wallet::updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'tenant_id' => $user->tenant_id,
+                    'balance_kobo' => 0,
+                    'ledger_balance_kobo' => 0,
+                    'currency' => 'NGN',
+                    'status' => 'ACTIVE',
+                    'wallet_provider' => 'ninepsb',
+                    'virtual_account_number' => $vaData['account_number'],
+                    'virtual_account_bank' => $vaData['bank'],
+                    'virtual_account_bank_code' => $vaData['bank_code'],
+                    'virtual_account_reference' => $vaData['reference'],
+                    'ninepsb_account_number' => $vaData['account_number'],
+                    'ninepsb_customer_id' => $vaData['customer_id'],
+                    'ninepsb_order_ref' => $vaData['order_ref'],
+                    'ninepsb_tier' => '1',
+                    'ninepsb_metadata' => [
+                        'full_name' => $vaData['full_name'],
+                        'raw_response' => $vaData['raw'] ?? null,
+                    ],
+                ]
+            );
+
+            // The (temporary) welcome bonus follows wallet creation, since
+            // registration no longer opens a wallet.
+            $this->grantWelcomeBonusIfEnabled($wallet);
+
+            return $wallet;
         });
+    }
+
+    /**
+     * Grant the temporary welcome bonus when it is enabled.
+     *
+     * Caller MUST wrap in DB::transaction(). Idempotent per user: however many
+     * times a wallet is (re)created, the bonus is only ever credited once.
+     */
+    public function grantWelcomeBonusIfEnabled(Wallet $wallet): void
+    {
+        if (! config('payments.welcome_bonus.enabled', true)) {
+            return;
+        }
+
+        $alreadyGranted = LedgerEntry::whereIn(
+            'wallet_id',
+            Wallet::where('user_id', $wallet->user_id)->pluck('id'),
+        )->where('correlation_id', 'like', 'WELCOME_BONUS%')->exists();
+
+        if ($alreadyGranted) {
+            return;
+        }
+
+        $this->credit(
+            $wallet,
+            (int) config('payments.welcome_bonus.amount_kobo', 50000 * 100),
+            'WELCOME_BONUS_'.$wallet->user_id,
+            'Welcome bonus',
+        );
     }
 
     /**

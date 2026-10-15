@@ -35,4 +35,21 @@ return [
         'kaduna-electric', 'jos-electric', 'aba-electric', 'yola-electric',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Welcome bonus (TEMPORARY — dev funding aid)
+    |--------------------------------------------------------------------------
+    |
+    | Registration no longer opens a wallet, so this bonus follows the wallet
+    | creation event instead (the KYC-gated explicit step). It exists so testers
+    | have spendable balance; set WELCOME_BONUS_ENABLED=false to switch it off
+    | and delete this block once the temporary bonus is retired.
+    |
+    */
+
+    'welcome_bonus' => [
+        'enabled'     => env('WELCOME_BONUS_ENABLED', true),
+        'amount_kobo' => (int) env('WELCOME_BONUS_KOBO', 50000 * 100), // ₦50,000
+    ],
+
 ];

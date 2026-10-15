@@ -4,9 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\AppUser;
-use App\Models\Wallet;
 use App\Services\OtpService;
-use App\Services\Wallet\WalletService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -15,7 +13,6 @@ class AuthController extends Controller
 {
     public function __construct(
         private readonly OtpService $otpService,
-        private readonly WalletService $walletService,
     ) {}
 
     /** POST /api/auth/register */
@@ -29,34 +26,24 @@ class AuthController extends Controller
             'password'   => 'required|string|min:8',
         ]);
 
-        $user = \Illuminate\Support\Facades\DB::transaction(function () use ($data) {
-            $user = AppUser::create([
-                'phone'         => $data['phone'],
-                'email'         => $data['email'],
-                'first_name'    => $data['first_name'],
-                'last_name'     => $data['last_name'],
-                'password_hash' => Hash::make($data['password']),
-                'kyc_status'    => 'UNVERIFIED',
-                'tier'          => 1,
-                'status'        => 'ACTIVE',
-                // NOT auto-verified — OTP required
-                'email_verified_at' => null,
-                'phone_verified_at' => null,
-            ]);
-
-            // Create wallet
-            $wallet = $this->walletService->createWallet($user);
-
-            // Credit welcome bonus for fresh users (50,000 in kobo)
-            $this->walletService->credit(
-                $wallet,
-                50000 * 100, // 50,000 NGN to kobo
-                'WELCOME_BONUS_' . $wallet->id . '_' . time(),
-                'Welcome bonus for new registration'
-            );
-
-            return $user;
-        });
+        // A wallet is OPTIONAL: registration creates the account only. Users who
+        // want a wallet open one through the KYC-gated explicit step
+        // (POST /wallet/ninepsb/create). Everyone else can still transact,
+        // because bill payments run through the Payfixy gateway rail, which
+        // needs no wallet (see AlternativePaymentController).
+        $user = AppUser::create([
+            'phone'         => $data['phone'],
+            'email'         => $data['email'],
+            'first_name'    => $data['first_name'],
+            'last_name'     => $data['last_name'],
+            'password_hash' => Hash::make($data['password']),
+            'kyc_status'    => 'UNVERIFIED',
+            'tier'          => 1,
+            'status'        => 'ACTIVE',
+            // NOT auto-verified — OTP required
+            'email_verified_at' => null,
+            'phone_verified_at' => null,
+        ]);
 
         // Send OTP for email verification
         $this->otpService->send($user->email, 'email', 'verification');
@@ -74,6 +61,8 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Account created. Check your email for a verification code.',
             'user_id' => $user->id,
+            // Fresh accounts have no wallet — they open one later, optionally.
+            'has_wallet' => false,
         ], 201);
     }
 
@@ -113,7 +102,7 @@ class AuthController extends Controller
 
         $user = AppUser::where('email', $data['identifier'])
             ->orWhere('phone', $data['identifier'])
-            ->with('tenant')   // eager-load so tenant_slug is resolved server-side
+            ->with(['tenant', 'wallet'])   // eager-load so tenant_slug + wallet state are resolved server-side
             ->first();
 
         if (! $user || ! Hash::check($data['password'], $user->password_hash)) {
@@ -144,6 +133,11 @@ class AuthController extends Controller
             // has_pin tells the client whether to show PIN creation or skip straight to home.
             // Derived server-side — client cannot forge it.
             'has_pin'      => ! is_null($user->pin_hash),
+            // Wallet state is OPTIONAL and derived server-side: the client uses
+            // it to offer the wallet rail on payment screens and to nudge the
+            // user towards opening one. Never assume a wallet exists.
+            'has_wallet'    => $user->hasActiveWallet(),
+            'wallet_status' => $user->wallet?->status ?? 'INACTIVE',
             'user' => [
                 'id'         => $user->id,
                 'email'      => $user->email,

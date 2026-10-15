@@ -25,6 +25,10 @@ class UserController extends Controller
             // Spatie role names — kept in sync with /auth/login so a profile
             // refresh carries the same authoritative admin signal.
             'roles' => $user->getRoleNames()->values()->all(),
+            // Wallet state — wallets are OPTIONAL, so the client cannot assume
+            // one exists. `has_wallet` drives the wallet rail and the promo CTA.
+            'has_wallet' => $user->hasActiveWallet(),
+            'wallet_status' => $user->wallet?->status ?? 'INACTIVE',
             'email_verified_at' => $user->email_verified_at,
             'phone_verified_at' => $user->phone_verified_at,
             'wallet' => $user->wallet ? [
