@@ -12,6 +12,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { BottomSheet } from '@/components/ui/BottomSheet'
+import { useAuthStore } from '@/store/auth.store'
 import { useTransactionStore } from '@/store/transaction.store'
 import { PinPad } from '@/components/ui/PinPad'
 import { Spinner } from '@/components/ui/Spinner'
@@ -50,7 +51,9 @@ export function DataScreen() {
   const [pin, setPin] = useState('')
   const [pinError, setPinError] = useState('')
   const [pending, setPending] = useState<FormData | null>(null)
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('wallet')
+  // Wallets are optional — default to the gateway rail when there is none.
+  const { hasWallet } = useAuthStore()
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(hasWallet ? 'wallet' : 'payfixy')
   const { isProcessing, startProcessing, stopProcessing } = useTransactionStore()
 
   // ── Categorisation tab state ───────────────────────────────────────────────
@@ -241,7 +244,7 @@ export function DataScreen() {
             {errors.variationCode && <p className="text-ios-red text-[13px] mt-1">{errors.variationCode.message}</p>}
           </div>
 
-          <PaymentMethodSelector value={paymentMethod} onChange={setPaymentMethod} disabled={isProcessing} />
+          <PaymentMethodSelector value={paymentMethod} onChange={setPaymentMethod} disabled={isProcessing} walletAvailable={hasWallet} />
 
           <Button type="submit" fullWidth className="mt-2" disabled={!chosen || isProcessing}>
             {chosen ? `Pay ₦${parseAmount(chosen.variationAmount ?? (chosen as any).variation_amount).toLocaleString()}` : 'Continue'}

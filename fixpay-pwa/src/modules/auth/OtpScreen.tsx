@@ -9,7 +9,7 @@ import type { User } from '@/types'
 
 export function OtpScreen() {
   const navigate = useNavigate()
-  const { pendingPhone, pendingEmail, setToken, setUser, pinCreated, kycCompleted } = useAuthStore()
+  const { pendingPhone, pendingEmail, setToken, setUser, pinCreated } = useAuthStore()
   // Hardcoded to 1234 just for testing purposes in the cloud
   const [otp, setOtp] = useState('1234')
   const [error, setError] = useState('')
@@ -34,8 +34,9 @@ export function OtpScreen() {
         // Mock mode returns token directly — continue to pin/kyc/home
         setToken(payload.accessToken)
         setUser(payload.user)
+        // KYC and wallet creation are both OPTIONAL — only a missing PIN blocks
+        // the home screen (bills run through the Payfixy gateway rail).
         if (!pinCreated) navigate('/auth/pin', { replace: true })
-        else if (!kycCompleted) navigate('/kyc', { replace: true })
         else navigate('/home', { replace: true })
       } else {
         // Live mode — email verified, now sign in

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ShieldExclamationIcon } from '@heroicons/react/24/outline'
@@ -14,7 +14,7 @@ import { TransactionDetailsBottomSheet } from '@/components/feature/TransactionD
 
 export function WalletScreen() {
   const navigate = useNavigate()
-  const { kycCompleted } = useAuthStore()
+  const { hasWallet, setHasWallet } = useAuthStore()
   const [filter, setFilter] = useState<'all' | 'today' | 'week' | 'month' | 'last_month' | 'custom'>('all')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
@@ -24,18 +24,28 @@ export function WalletScreen() {
     queryKey: ['wallet'],
     queryFn: () => walletService.getBalance(),
     staleTime: 30_000,
-    enabled: kycCompleted,
+    // Always fetched: the endpoint is the authoritative wallet-existence signal
+    // (it returns an id-less INACTIVE wallet when the user has none).
+    enabled: true,
   })
+
+  // Reconcile the client flag with the server (covers sessions restored from
+  // persisted state written back when every account had a wallet).
+  const walletExists = hasWallet || Boolean(wallet?.id)
+  useEffect(() => {
+    if (wallet?.id && !hasWallet) setHasWallet(true)
+  }, [wallet?.id, hasWallet, setHasWallet])
 
   const { data: txPage, isLoading } = useQuery({
     queryKey: ['transactions', { page: 0, size: 50 }],
     queryFn: () => walletService.getTransactions(0, 50),
     staleTime: 30_000,
-    enabled: kycCompleted,
+    enabled: hasWallet,
   })
 
-  // KYC gate — show verification prompt instead of wallet
-  if (!kycCompleted) {
+  // Wallet gate — wallets are OPTIONAL, so prompt the user to open one instead
+  // of assuming it exists. Bills can still be paid with PayFixy, no wallet needed.
+  if (!walletExists) {
     return (
       <div className="flex flex-col h-[100dvh] bg-[#F2F2F7]">
         <PageHeader title="Wallet" />
@@ -44,9 +54,9 @@ export function WalletScreen() {
             <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-4">
               <ShieldExclamationIcon className="w-8 h-8 text-brand" />
             </div>
-            <h2 className="text-[18px] font-bold text-gray-900 mb-2">Verification Required</h2>
+            <h2 className="text-[18px] font-bold text-gray-900 mb-2">Open a Wallet</h2>
             <p className="text-[13px] text-gray-500 leading-relaxed mb-6">
-              Complete your identity verification to open a wallet. Get a virtual account, send money anywhere, and unlock ₦5,000,000 daily transfers.
+              Opening a wallet is optional — you can already pay bills with PayFixy. Verify your identity to get a virtual account, send money anywhere, and unlock ₦5,000,000 daily transfers.
             </p>
             <div className="flex flex-col gap-3 w-full">
               <div className="flex items-center gap-2 text-left">
@@ -70,7 +80,7 @@ export function WalletScreen() {
               className="mt-3 text-[12px] font-semibold"
               style={{ color: 'var(--brand-primary)' }}
             >
-              Maybe Later
+              Pay a bill without a wallet
             </button>
           </div>
         </div>

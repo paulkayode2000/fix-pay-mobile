@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { DocumentDuplicateIcon, ShieldExclamationIcon } from '@heroicons/react/24/outline'
@@ -10,16 +11,26 @@ import { vibrate } from '@/lib/utils'
 
 export function FundWalletScreen() {
   const navigate = useNavigate()
-  const { kycCompleted } = useAuthStore()
+  const { hasWallet, setHasWallet } = useAuthStore()
 
   const { data: wallet } = useQuery<Wallet>({
     queryKey: ['wallet'],
     queryFn: () => walletService.getBalance(),
-    enabled: kycCompleted,
+    // Always fetched: the endpoint is the authoritative wallet-existence signal
+    // (it returns an id-less INACTIVE wallet when the user has none).
+    enabled: true,
   })
 
-  // KYC gate — redirect to verification
-  if (!kycCompleted) {
+  // Reconcile the client flag with the server (covers sessions restored from
+  // persisted state written back when every account had a wallet).
+  const walletExists = hasWallet || Boolean(wallet?.id)
+  useEffect(() => {
+    if (wallet?.id && !hasWallet) setHasWallet(true)
+  }, [wallet?.id, hasWallet, setHasWallet])
+
+  // Wallet gate — wallets are OPTIONAL and only ever created on the explicit
+  // KYC-gated step, so never assume one exists.
+  if (!walletExists) {
     return (
       <div className="flex flex-col h-[100dvh] bg-[#F2F2F7]">
         <PageHeader title="Fund Wallet" onBack="default" />
@@ -28,9 +39,9 @@ export function FundWalletScreen() {
             <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-4">
               <ShieldExclamationIcon className="w-8 h-8 text-brand" />
             </div>
-            <h2 className="text-[18px] font-bold text-gray-900 mb-2">Verification Required</h2>
+            <h2 className="text-[18px] font-bold text-gray-900 mb-2">Open a Wallet</h2>
             <p className="text-[13px] text-gray-500 leading-relaxed mb-6">
-              Complete your identity verification to fund your wallet. Once verified, you'll receive a virtual account for instant bank transfers.
+              You don't have a wallet yet — and you don't need one to pay bills. Verify your identity to open one and get a virtual account for instant bank transfers.
             </p>
             <Button fullWidth className="mb-3" onClick={() => navigate('/kyc')}>
               Verify Identity

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
 import { api } from '@/lib/api'
 import { queryClient } from '@/lib/query-client'
+import { useAuthStore } from '@/store/auth.store'
 
 interface TermsData {
   title: string
@@ -16,6 +17,7 @@ interface TermsData {
 
 export function NinePsbOnboardingScreen() {
   const navigate = useNavigate()
+  const { setHasWallet, setKycCompleted } = useAuthStore()
   const [terms, setTerms] = useState<TermsData | null>(null)
   const [accepted, setAccepted] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -84,6 +86,11 @@ export function NinePsbOnboardingScreen() {
           },
         }
       )
+
+      // The wallet now exists and the 9PSB flow verifies the user — reflect both
+      // in client state so the wallet rail and wallet screens unlock.
+      setHasWallet(true)
+      setKycCompleted(true)
 
       // Invalidate wallet queries so the wallet screen refreshes
       queryClient.invalidateQueries({ queryKey: ['wallet'] })

@@ -15,6 +15,7 @@ import { BottomSheet } from '@/components/ui/BottomSheet'
 import { PinPad } from '@/components/ui/PinPad'
 import { Spinner } from '@/components/ui/Spinner'
 import { resolveVtpassCode } from '@/lib/vtpass-codes'
+import { useAuthStore } from '@/store/auth.store'
 import { PaymentMethodSelector, type PaymentMethod } from '@/components/feature/PaymentMethodSelector'
 
 const parseAmount = (amt: string | number | undefined | null): number => {
@@ -46,7 +47,9 @@ export function EducationScreen() {
   const [pinError, setPinError] = useState('')
   const [pending, setPending] = useState<FormData | null>(null)
   const [submitting, setSubmitting] = useState(false)
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('wallet')
+  // Wallets are optional — default to the gateway rail when there is none.
+  const { hasWallet } = useAuthStore()
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(hasWallet ? 'wallet' : 'payfixy')
   const initialService = (location.state as { serviceId?: string } | null)?.serviceId ?? 'jamb'
 
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<FormData>({
@@ -195,7 +198,7 @@ export function EducationScreen() {
             {errors.variationCode && <p className="text-ios-red text-[13px] mt-1">{errors.variationCode.message}</p>}
           </div>
 
-          <PaymentMethodSelector value={paymentMethod} onChange={setPaymentMethod} disabled={submitting} />
+          <PaymentMethodSelector value={paymentMethod} onChange={setPaymentMethod} disabled={submitting} walletAvailable={hasWallet} />
 
           <Button type="submit" fullWidth disabled={!chosen || submitting}>
             {chosen ? `Pay ₦${parseAmount(chosen.variationAmount ?? (chosen as any).variation_amount).toLocaleString()}` : 'Continue'}

@@ -17,6 +17,12 @@ interface AuthState {
   pinCreated: boolean
   kycCompleted: boolean
   kycDeferred: boolean
+  /**
+   * Whether the user has an ACTIVE wallet. Wallets are OPTIONAL — the account
+   * can pay bills through the Payfixy gateway rail without one — so the UI must
+   * never assume a wallet exists. Derived from the server (`has_wallet`).
+   */
+  hasWallet: boolean
   pendingPhone: string | null
   pendingEmail: string | null
   /** True once zustand-persist has finished reading from localStorage */
@@ -26,6 +32,7 @@ interface AuthState {
   setPinCreated: (v: boolean) => void
   setKycCompleted: (v: boolean) => void
   setKycDeferred: (v: boolean) => void
+  setHasWallet: (v: boolean) => void
   setPending: (phone?: string, email?: string) => void
   logout: () => void
   setHasHydrated: (v: boolean) => void
@@ -40,6 +47,7 @@ export const useAuthStore = create<AuthState>()(
       pinCreated: false,
       kycCompleted: false,
       kycDeferred: false,
+      hasWallet: false,
       pendingPhone: null,
       pendingEmail: null,
       _hasHydrated: false,
@@ -48,8 +56,9 @@ export const useAuthStore = create<AuthState>()(
       setPinCreated: (v) => set({ pinCreated: v }),
       setKycCompleted: (v) => set({ kycCompleted: v }),
       setKycDeferred: (v) => set({ kycDeferred: v }),
+      setHasWallet: (v) => set({ hasWallet: v }),
       setPending: (phone, email) => set({ pendingPhone: phone ?? null, pendingEmail: email ?? null }),
-      logout: () => set({ token: null, user: null, isAuthenticated: false, pinCreated: false, kycCompleted: false }),
+      logout: () => set({ token: null, user: null, isAuthenticated: false, pinCreated: false, kycCompleted: false, hasWallet: false }),
       setHasHydrated: (v) => set({ _hasHydrated: v }),
     }),
     {
@@ -62,6 +71,7 @@ export const useAuthStore = create<AuthState>()(
         pinCreated: state.pinCreated,
         kycCompleted: state.kycCompleted,
         kycDeferred: state.kycDeferred,
+        hasWallet: state.hasWallet,
         pendingPhone: state.pendingPhone,
         pendingEmail: state.pendingEmail,
       }),

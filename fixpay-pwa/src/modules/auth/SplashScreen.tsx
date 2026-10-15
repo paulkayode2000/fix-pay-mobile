@@ -13,7 +13,7 @@ const fade = (delay: number) => ({
 
 export function SplashScreen() {
   const navigate = useNavigate()
-  const { isAuthenticated, kycCompleted, pinCreated, _hasHydrated } = useAuthStore()
+  const { isAuthenticated, pinCreated, _hasHydrated } = useAuthStore()
   const [exiting, setExiting] = useState(false)
 
   useEffect(() => {
@@ -28,15 +28,17 @@ export function SplashScreen() {
       await sleep(700)
       if (cancelled) return
       sessionStorage.setItem('splash_shown', '1')
-      if (isAuthenticated && kycCompleted && pinCreated) navigate('/home', { replace: true })
-      else if (isAuthenticated) navigate('/kyc', { replace: true })
+      // KYC and wallets are both optional entry-wise (bills work through the
+      // Payfixy gateway rail without either) — only the PIN gates the home.
+      if (isAuthenticated && pinCreated) navigate('/home', { replace: true })
+      else if (isAuthenticated) navigate('/auth/pin', { replace: true })
       else if (localStorage.getItem('fixpay_onboarded')) navigate('/auth/login', { replace: true })
       else navigate('/welcome', { replace: true })
     }
 
     run()
     return () => { cancelled = true }
-  }, [_hasHydrated, isAuthenticated, kycCompleted, pinCreated, navigate])
+  }, [_hasHydrated, isAuthenticated, pinCreated, navigate])
 
   return (
     <motion.div

@@ -22,7 +22,7 @@ export function LoginScreen() {
   const navigate = useNavigate()
   const location = useLocation()
   const verified = (location.state as { verified?: boolean } | null)?.verified === true
-  const { setToken, setUser, setPinCreated, setKycCompleted } = useAuthStore()
+  const { setToken, setUser, setPinCreated, setKycCompleted, setHasWallet } = useAuthStore()
   const [serverError, setServerError] = useState('')
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
@@ -68,6 +68,9 @@ export function LoginScreen() {
       const isKycVerified = user.kycStatus === 'verified'
       setPinCreated(hasPinFromServer)
       setKycCompleted(isKycVerified)
+      // Wallets are OPTIONAL and derived server-side — the client must never
+      // assume one exists (bill payments work without a wallet).
+      setHasWallet(raw.has_wallet === true)
 
       // Store the server-resolved tenant slug (from user.tenant_id FK).
       // This is authoritative — the client cannot forge it.
@@ -80,10 +83,12 @@ export function LoginScreen() {
       }
       localStorage.setItem('fixpay_onboarded', '1')
 
-      // Route based on what the user still needs to complete
-      if (hasPinFromServer && isKycVerified) navigate('/home', { replace: true })
-      else if (!hasPinFromServer)            navigate('/auth/pin', { replace: true })
-      else                                   navigate('/kyc', { replace: true })
+      // Route based on what the user still needs to complete.
+      // KYC and wallet creation are both OPTIONAL: neither is an entry gate any
+      // more (bills run through the Payfixy gateway rail without a wallet) — the
+      // in-app promo cards nudge instead. Only PIN creation gates the home.
+      if (!hasPinFromServer) navigate('/auth/pin', { replace: true })
+      else                   navigate('/home', { replace: true })
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
       setServerError(msg ?? 'Invalid credentials. Try again.')

@@ -63,6 +63,28 @@ export interface VerifyPayload {
   type?: string
 }
 
+/**
+ * Non-wallet rail (Payfixy / card / transfer / USSD) via the Payfixy Gateway.
+ * The gateway settles the bill — no wallet or wallet hold is involved, so a
+ * user without a wallet can pay.
+ */
+export interface AlternativePaymentResponse {
+  payment_reference: string
+  gateway_reference: string
+  /** PENDING | PROCESSING | COMPLETED | FAILED | REVERSED */
+  status: string
+  payment_method?: string
+  amount_kobo?: number
+  fee_kobo?: number
+  provider_code?: string
+  vtpass_code?: string
+  token?: string
+  units?: string
+  message?: string | null
+}
+
+export type AlternativePaymentMethod = 'payfixy' | 'card' | 'bank_transfer' | 'ussd'
+
 // VTpass variations response shape (real backend forwards VTpass JSON after camelCase normalisation)
 interface VtpassVariationsResponse {
   responseDescription?: string
@@ -201,8 +223,8 @@ export const paymentsService = {
       return mapResponse(d, 0)
     }),
 
-  alternativeInitiate: (payload: any & { paymentMethod: 'payfixy' | 'bank_mandate' }): Promise<{ payment_reference: string, gateway_reference: string, status: string }> =>
-    api.post<any>('/payments/alternative/initiate', {
+  alternativeInitiate: (payload: any & { paymentMethod: AlternativePaymentMethod }): Promise<AlternativePaymentResponse> =>
+    api.post<AlternativePaymentResponse>('/payments/alternative/initiate', {
       service_id: payload.serviceId,
       amount_kobo: Math.round(payload.amount * 100),
       phone: payload.phone || payload.billersCode || '',
@@ -212,6 +234,8 @@ export const paymentsService = {
       subscription_type: payload.subscriptionType,
     }).then(r => r.data),
 
+  // The gateway settles this rail synchronously, so verify() is a user-scoped
+  // read of the recorded outcome — it reuses the same bill-response shape.
   alternativeVerify: (gatewayReference: string): Promise<BillPaymentResponse> =>
     api.post<any>('/payments/alternative/verify', { gateway_reference: gatewayReference })
       .then(r => mapResponse(r.data, 0)),

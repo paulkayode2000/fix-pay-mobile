@@ -24,11 +24,12 @@ export function HomeScreen() {
   const [repeatTx, setRepeatTx] = useState<Transaction | null>(null)
   const { favourites, removeFavourite, fetchFavourites } = useFavouritesStore()
   const { data: analyticsData, fetchAnalytics } = useAnalyticsStore()
-  const { kycCompleted, user } = useAuthStore()
+  const { hasWallet, user } = useAuthStore()
 
-  // Show wallet promo if user hasn't completed KYC (i.e., hasn't opened a wallet yet)
-  // KYC is required for wallet creation — this is the primary funnel.
-  const showWalletPromo = !kycCompleted
+  // Wallet promo shows until the user actually HAS a wallet. Wallets are
+  // optional (a wallet is opened through the KYC-gated step), so KYC alone is
+  // not evidence of a wallet.
+  const showWalletPromo = !hasWallet
 
   useEffect(() => {
     fetchAnalytics('7d')

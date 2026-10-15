@@ -12,6 +12,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { BottomSheet } from '@/components/ui/BottomSheet'
+import { useAuthStore } from '@/store/auth.store'
 import { useTransactionStore } from '@/store/transaction.store'
 import { PinPad } from '@/components/ui/PinPad'
 import { resolveVtpassCode } from '@/lib/vtpass-codes'
@@ -49,7 +50,9 @@ export function ElectricityScreen() {
   const [verifying, setVerifying] = useState(false)
   const [verifyError, setVerifyError] = useState('')
   const [pending, setPending] = useState<FormData | null>(null)
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('wallet')
+  // Wallets are optional — default to the gateway rail when there is none.
+  const { hasWallet } = useAuthStore()
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(hasWallet ? 'wallet' : 'payfixy')
   const { isProcessing, startProcessing, stopProcessing } = useTransactionStore()
 
   const AMOUNTS = [500, 1000, 2000, 5000, 10000]
@@ -229,7 +232,7 @@ export function ElectricityScreen() {
               error={errors.amount?.message} {...register('amount')} />
           </div>
 
-          <PaymentMethodSelector value={paymentMethod} onChange={setPaymentMethod} disabled={isProcessing} />
+          <PaymentMethodSelector value={paymentMethod} onChange={setPaymentMethod} disabled={isProcessing} walletAvailable={hasWallet} />
 
           <Button type="submit" fullWidth className="mt-2" disabled={!verifyResult || isProcessing}>Pay Now</Button>
         </form>
