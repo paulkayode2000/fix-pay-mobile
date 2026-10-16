@@ -213,6 +213,39 @@ Stack re-verified after these changes: all five services `healthy`; `/up` `200`;
 **31 passed / 101 assertions**; `config:cache` + `route:cache` + `view:cache`
 warm → same results, with `config('payments.timeout_seconds')` = `60` from `.env`.
 
+### Caught by the first CI run after the push (fixed in `1343d28`)
+
+The push turned CI red — `Run Backend Tests`: **7 failed / 24 passed**, every
+failure inside `AlternativePaymentTest`, each a `503` where a `200`/`422` was
+expected. Root cause: the rail is gated on `services.gateway.enabled`
+(`AlternativePaymentController::initiate` answers `503` while it is `false`), CI
+builds its `.env` from `.env.example`, and that file carried **no rail keys at
+all** — so the flag took its `false` default, while the developer `.env` had
+`PAYFIXY_GATEWAY_ENABLED=true`. Reproduced locally by exporting
+`PAYFIXY_GATEWAY_ENABLED=false`: the same 7 failures with the same `503`s.
+
+Fix: the flag is pinned at runtime in `AlternativePaymentTest::setUp()`
+(`config(['services.gateway.enabled' => true])`) — the value the controller
+actually reads — so no ambient `.env`, `.env.testing`, host env var or
+`phpunit.xml` `<env>` entry can change it. A `phpunit.xml` `<env ... force="true"/>`
+block was tried first and **verified not to reach Laravel's config in this app**
+(a `.env.testing` built from `.env.example` still returned `503`), so it was
+reverted rather than left in as false comfort.
+
+Verified three ways — dev `.env`; `.env.testing` built from `.env.example`; and
+that same setup with `PAYFIXY_GATEWAY_ENABLED=false` exported — all
+**31 passed / 101 assertions**. Push run
+[38880986354](https://github.com/paulkayode2000/fix-pay-mobile/actions/runs/38880986354):
+`Test and Build` **success** (including the new `docker build` image validation,
+green in CI even with the local Docker daemon stopped), deploy job skipped
+(manual dispatch only).
+
+`.env.example` also gained the missing rail keys (`PAYFIXY_GATEWAY_ENABLED`,
+`..._BASE_URL`, `..._API_KEY`, `..._SECRET_KEY`, `..._BUSINESS_ID`,
+`PAYFIXY_ALTERNATIVE_PAYMENT_METHOD`, `PAYMENT_TIMEOUT_SECONDS`) with comments, so
+a fresh clone, a CI run or a new server can see the rail is gated deliberately.
+That gap is what had made the suite green on one machine and red in CI.
+
 ## Still open (not covered by this pass)
 
 1. **Server-side `.env`** — must exist at
@@ -231,6 +264,9 @@ warm → same results, with `config('payments.timeout_seconds')` = `60` from `.e
    `php:8.3-fpm`), move `secretpassword` and the `5433` Postgres port out of the
    base compose, multi-stage PWA build (removes the `dist` dependency), and the
    optional nginx `resolver` for the stale-upstream-IP 502.
+5. **Dependency security** — the push reported **197 Dependabot alerts** on the
+   default branch (5 critical, 87 high, 95 moderate, 10 low, as of 2026-10-16).
+   Worth a triage pass before the host is exposed publicly.
 
 
 
