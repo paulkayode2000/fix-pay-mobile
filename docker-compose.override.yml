@@ -1,5 +1,3 @@
-version: '3.8'
-
 # fixpay-mobile override — run the stack on the shared tms_default ingress
 # network with stable container names. All inter-service traffic uses Docker
 # DNS names on tms_default (never host ports); the Traefik router forwards
@@ -31,26 +29,10 @@ services:
       # 8081 is payfixy-frontend; 8082 is the fixpay PWA.
       - "8082:80"
 
-  # Laravel queue worker — processes the async AntifraudScoreJob /
-  # TransactionAmlScreenJob dispatches so TMS risk/AML tagging actually runs
-  # (QUEUE_CONNECTION=database; without a worker jobs pile up and
-  # risk_assessments stays empty).
+  # The worker itself is defined in the base file (so deployments get it too);
+  # this override only gives it a stable name + the ingress network.
   queue-worker:
-    image: fixpay-mobile-backend
     container_name: fixpay-queue-worker
-    restart: unless-stopped
-    command: php artisan queue:work --sleep=3 --tries=3 --timeout=90
-    volumes:
-      - ./fixpay-laravel:/var/www
-    environment:
-      DB_CONNECTION: pgsql
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_DATABASE: fixpay
-      DB_USERNAME: fixpayuser
-      DB_PASSWORD: secretpassword
-    depends_on:
-      - db
     networks:
       - tms_default
 

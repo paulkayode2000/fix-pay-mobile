@@ -1,4 +1,33 @@
-version: '3.8'
+# Shared backend configuration. The anchor is reused by `backend` and
+# `queue-worker` so both always run the same image with the same DB + rail
+# endpoints.
+x-backend: &backend
+  volumes:
+    - ./fixpay-laravel:/var/www
+  environment:
+    DB_CONNECTION: pgsql
+    DB_HOST: db
+    DB_PORT: 5432
+    DB_DATABASE: fixpay
+    DB_USERNAME: fixpayuser
+    DB_PASSWORD: secretpassword
+    # Container-reachable rail endpoints. fixpay-laravel/.env holds 127.0.0.1
+    # URLs that are only valid for native (non-container) runs — inside a
+    # container 127.0.0.1 is the container itself. Real environment variables
+    # win over .env, so these keep native runs untouched while making the
+    # Payfixy gateway / TMS reachable from the containers. Override per host
+    # (e.g. http://gw.payfixy.test when the gateway runs in Docker).
+    PAYFIXY_GATEWAY_BASE_URL: ${PAYFIXY_GATEWAY_BASE_URL_DOCKER:-http://host.docker.internal:9013}
+    TMS_BASE_URL: ${TMS_BASE_URL_DOCKER:-http://host.docker.internal:81}
+    TMS_ANTIFRAUD_URL: ${TMS_ANTIFRAUD_URL_DOCKER:-http://host.docker.internal:8083}
+  extra_hosts:
+    # Needed on Linux hosts so host.docker.internal resolves to the machine
+    # running the natively-hosted gateway/TMS.
+    - "host.docker.internal:host-gateway"
+  depends_on:
+    db:
+      condition: service_healthy
+  restart: unless-stopped
 
 services:
   # Database Container
@@ -14,25 +43,29 @@ services:
       # Debug escape hatch only — canonical access is via the Traefik ingress.
       # Moved off 5432 to avoid host-PG conflicts.
       - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fixpayuser -d fixpay"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
     restart: unless-stopped
 
   # Backend PHP-FPM Container
   backend:
+    <<: *backend
     build:
       context: ./fixpay-laravel
       dockerfile: Dockerfile
-    volumes:
-      - ./fixpay-laravel:/var/www
-    environment:
-      DB_CONNECTION: pgsql
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_DATABASE: fixpay
-      DB_USERNAME: fixpayuser
-      DB_PASSWORD: secretpassword
-    depends_on:
-      - db
-    restart: unless-stopped
+    # Explicit tag: queue-worker reuses it and deployments can address it
+    # regardless of the compose project name (which used to break the worker).
+    image: fixpay-backend:local
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@fsockopen('127.0.0.1', 9000) ? 0 : 1);"]
+      interval: 10s
+      timeout: 10s
+      retries: 6
+      start_period: 30s
 
   # Backend Web Server (Nginx) to serve Laravel API
   api_webserver:
@@ -43,7 +76,18 @@ services:
     ports:
       - "8000:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      # Laravel's own readiness route, so an unhealthy API fails the check.
+      # Generous timeout/start_period: a cold framework boot on a loaded host
+      # can take several seconds, and a *false* unhealthy here blocks every
+      # service that gates on it.
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/up || exit 1"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 90s
     restart: unless-stopped
 
   # Frontend Web Server (PWA) — served through the Traefik ingress at
@@ -52,7 +96,42 @@ services:
     build:
       context: ./fixpay-pwa
       dockerfile: Dockerfile
+    image: fixpay-frontend:local
+    depends_on:
+      # service_started, not service_healthy: nginx only needs the API upstream
+      # to exist at boot (it proxy_passes per request), and gating the PWA on
+      # the API's healthcheck could stall a deploy on a slow cold boot.
+      api_webserver:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
     restart: unless-stopped
+
+  # Laravel queue worker — processes the async AntifraudScoreJob /
+  # TransactionAmlScreenJob / DeliverWebhookJob dispatches so TMS risk/AML
+  # tagging and outbound webhooks actually run (QUEUE_CONNECTION=database;
+  # without a worker jobs pile up and risk_assessments stays empty).
+  # Lives in the base file so every deployment gets one, not just local dev.
+  queue-worker:
+    <<: *backend
+    build:
+      context: ./fixpay-laravel
+      dockerfile: Dockerfile
+    image: fixpay-backend:local
+    command: php artisan queue:work --sleep=3 --tries=3 --timeout=90
+    healthcheck:
+      # A worker fails silently when it loses the queue DB; that is the signal
+      # worth probing (queue:work has no endpoint of its own).
+      test: ["CMD", "php", "-r", "exit(@fsockopen('db', 5432) ? 0 : 1);"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
 volumes:
   db_data:
+

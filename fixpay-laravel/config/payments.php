@@ -37,6 +37,25 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Payment lifecycle timers (seconds)
+    |--------------------------------------------------------------------------
+    |
+    | Read with config() at the call sites (TimeoutStalePaymentsCommand,
+    | RequeryPendingPaymentsCommand) so that `php artisan config:cache` in the
+    | container deploy does not silently replace a configured value with the
+    | default below — Laravel skips loading .env once the config is cached.
+    |
+    */
+
+    'timeout_seconds' => (int) env('PAYMENT_TIMEOUT_SECONDS', 300),
+
+    'requery' => [
+        'first_attempt_after_seconds' => (int) env('REQUERY_FIRST_ATTEMPT_AFTER_SECONDS', 90),
+        'recheck_interval_seconds'    => (int) env('REQUERY_RECHECK_INTERVAL_SECONDS', 120),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Welcome bonus (TEMPORARY — dev funding aid)
     |--------------------------------------------------------------------------
     |

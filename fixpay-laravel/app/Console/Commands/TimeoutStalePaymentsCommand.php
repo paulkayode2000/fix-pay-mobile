@@ -26,7 +26,7 @@ class TimeoutStalePaymentsCommand extends Command
 
     public function handle(): int
     {
-        $ttlSeconds = (int) env('PAYMENT_TIMEOUT_SECONDS', 300);
+        $ttlSeconds = (int) config('payments.timeout_seconds');
         $cutoff = now()->subSeconds($ttlSeconds);
 
         $stale = VtpassPayment::whereIn('payment_status', ['PROCESSING', 'PENDING'])

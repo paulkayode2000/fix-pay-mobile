@@ -47,8 +47,8 @@ class RequeryPendingPaymentsCommand extends Command
     {
         // Payments still in-flight are allowed a short grace period before the
         // first requery (the provider may have responded within it).
-        $graceCutoff = now()->subSeconds((int) env('REQUERY_FIRST_ATTEMPT_AFTER_SECONDS', 90));
-        $recheckCutoff = now()->subSeconds((int) env('REQUERY_RECHECK_INTERVAL_SECONDS', 120));
+        $graceCutoff = now()->subSeconds((int) config('payments.requery.first_attempt_after_seconds'));
+        $recheckCutoff = now()->subSeconds((int) config('payments.requery.recheck_interval_seconds'));
 
         $candidates = VtpassPayment::whereIn('payment_status', ['PROCESSING', 'PENDING'])
             ->where('requery_count', '<', self::MAX_REQUERY_ATTEMPTS)

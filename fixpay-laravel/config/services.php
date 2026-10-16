@@ -123,4 +123,11 @@ return [
         'webhook_password' => env('9PSB_WEBHOOK_PASSWORD', ''),
     ],
 
+    // NIBSS BVN consent (KycController). Read through config() so a cached
+    // config still sees the value — `php artisan config:cache` is part of the
+    // container deploy (see DOCKER_READINESS.md).
+    'nibss' => [
+        'base_url' => env('NIBSS_BASE_URL', 'https://apitest.nibss-plc.com.ng/api'),
+    ],
+
 ];

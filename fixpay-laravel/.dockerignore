@@ -1,0 +1,38 @@
+# Build-context exclusions for the Laravel (backend) image.
+# Without this file `COPY . /var/www` bakes the local dev secrets, host vendor
+# tree and stray scratch scripts into the image (the image is built from the
+# ./fixpay-laravel context only).
+
+.git
+.github
+
+# Never ship environment secrets inside an image. The dev stack gets .env from
+# the ./fixpay-laravel bind mount; the OCI server keeps its own .env on disk.
+.env
+.env.*
+!.env.example
+
+# Dependencies are installed by `composer install --no-dev` during the build.
+vendor
+node_modules
+
+# Host-generated caches / logs (regenerated at runtime by Laravel).
+bootstrap/cache/*.php
+storage/logs/*.log
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
+
+# Not needed at runtime.
+tests
+scratch
+*.log
+tx-matrix*.php
+tx-observe.php
+check_wallets.php
+seed_wallet.php
+test_wallet.php
+scratch_check.php
+
+Dockerfile
+.dockerignore

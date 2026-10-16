@@ -1,0 +1,22 @@
+# Build-context exclusions for the PWA image.
+# The Dockerfile only needs ./dist (produced by `npm run build`); without this
+# file the whole node_modules tree (~234 MB) is uploaded to the Docker daemon on
+# every build.
+
+.git
+.github
+node_modules
+coverage
+playwright-report
+test-results
+.vite
+*.log
+npm-debug.log*
+
+# Keep committed VITE_* files (they are public build-time config) but never
+# ship machine-local secret overrides.
+.env.local
+.env.*.local
+
+Dockerfile
+.dockerignore

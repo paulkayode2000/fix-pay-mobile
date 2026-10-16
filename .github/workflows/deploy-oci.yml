@@ -48,6 +48,21 @@ jobs:
         working-directory: ./fixpay-pwa
         run: npm run build
 
+      - name: Typecheck Frontend (PWA)
+        working-directory: ./fixpay-pwa
+        # Signal, not a gate: there is a pre-existing type-error baseline, so
+        # this stays non-blocking until that is cleared.
+        continue-on-error: true
+        run: npx tsc -p tsconfig.app.json --noEmit
+
+      - name: Validate Docker builds
+        # Catches Dockerfile/context breakage at PR time instead of mid-release.
+        # The PWA image needs ./dist, which the build step above produced.
+        run: |
+          docker build -t fixpay-backend:ci ./fixpay-laravel
+          docker build -t fixpay-frontend:ci ./fixpay-pwa
+          docker image prune -f
+
       - name: Archive Production Artifact
         uses: actions/upload-artifact@v7
         with:
@@ -91,7 +106,7 @@ jobs:
           host: ${{ secrets.OCI_HOST_IP }}
           username: ubuntu
           key: ${{ secrets.OCI_SSH_KEY }}
-          source: "docker-compose.yml,nginx-backend.conf,fixpay-laravel,fixpay-pwa"
+          source: "docker-compose.yml,docker-compose.override.yml,nginx-backend.conf,fixpay-laravel,fixpay-pwa"
           target: "/var/www/fixpay"
           exclude: "fixpay-laravel/vendor,fixpay-pwa/node_modules,fixpay-laravel/.env"
 
@@ -102,8 +117,70 @@ jobs:
           username: ubuntu
           key: ${{ secrets.OCI_SSH_KEY }}
           script: |
+            set -e
             cd /var/www/fixpay
-            docker compose up -d --build
+
+            # .env is deliberately not SCP'd — secrets stay on the host.
+            if [ ! -f fixpay-laravel/.env ]; then
+              echo "FATAL: fixpay-laravel/.env is missing. Create it on the server (APP_KEY, DB_*, gateway/TMS credentials) — see DOCKER_READINESS.md."
+              exit 1
+            fi
+
+            # compose.override.yml attaches the stack to the shared ingress
+            # network; create it if the TMS/Traefik stack has never run here.
+            docker network create tms_default >/dev/null 2>&1 || true
+
+            docker compose up -d --build --remove-orphans
             docker image prune -f
-            sudo chown -R 33:33 /var/www/fixpay/fixpay-laravel/storage
-            sudo chmod -R 775 /var/www/fixpay/fixpay-laravel/storage
+
+            # The source is bind-mounted, so the mounted dirs must be writable
+            # by www-data (uid 33): storage *and* bootstrap/cache, where Laravel
+            # writes its manifests.
+            sudo chown -R 33:33 fixpay-laravel/storage fixpay-laravel/bootstrap/cache
+            sudo chmod -R 775 fixpay-laravel/storage fixpay-laravel/bootstrap/cache
+
+            # Wait for the backend container to accept exec.
+            for i in $(seq 1 20); do
+              if docker compose exec -T backend php -v >/dev/null 2>&1; then break; fi
+              sleep 2
+            done
+
+            # Generate an APP_KEY once, if the host .env has none.
+            docker compose exec -T backend sh -c 'grep -q "^APP_KEY=base64" .env || php artisan key:generate --force'
+
+            # Schema changes ship with the release.
+            docker compose exec -T backend php artisan migrate --force
+
+            # Freeze config/routes/views. NOTE: with config cached, .env is no
+            # longer read at runtime — app code must read settings through
+            # config() (all env() calls outside config/ were converted).
+            docker compose exec -T backend php artisan config:cache
+            docker compose exec -T backend php artisan route:cache
+            docker compose exec -T backend php artisan view:cache
+
+            # Post-deploy smoke test — fail the release instead of shipping 502s.
+            ok=0
+            for i in $(seq 1 30); do
+              if curl -fsS -m 5 http://127.0.0.1:8000/up >/dev/null 2>&1; then ok=1; break; fi
+              sleep 3
+            done
+            if [ "$ok" != "1" ]; then
+              echo "SMOKE FAILED: API /up never answered 200"
+              docker compose ps -a
+              docker compose logs --tail 60 backend api_webserver
+              exit 1
+            fi
+
+            curl -fsS -m 5 -o /dev/null http://127.0.0.1:8082/ || {
+              echo "SMOKE FAILED: PWA is not serving"
+              docker compose logs --tail 40 frontend
+              exit 1
+            }
+
+            docker compose ps --status running --services | grep -qx queue-worker || {
+              echo "SMOKE FAILED: queue-worker is not running"
+              docker compose ps -a
+              exit 1
+            }
+
+            echo "SMOKE OK: API /up 200, PWA serving, queue-worker running"

@@ -150,7 +150,7 @@ class KycController extends Controller
         }
 
         $sessionId = 'mock_session_' . uniqid();
-        $consentUrl = env('NIBSS_BASE_URL', 'https://apitest.nibss-plc.com.ng/api') . '/consent/mock?sessionId=' . $sessionId;
+        $consentUrl = config('services.nibss.base_url') . '/consent/mock?sessionId=' . $sessionId;
 
         $record = KycVerification::create([
             'user_id' => $user->id,
