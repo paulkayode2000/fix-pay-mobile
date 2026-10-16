@@ -25,6 +25,23 @@ class AlternativePaymentTest extends TestCase
 
     private const GATEWAY_PAY = '*/api/v1/mobile/bills/pay';
 
+    /**
+     * The rail is gated on services.gateway.enabled and every endpoint answers
+     * 503 while it is false. A fresh environment (.env.example, and therefore
+     * CI) ships it disabled, so pin it at runtime here instead of relying on
+     * the ambient environment: phpunit.xml <env> values do not reach Laravel's
+     * config in this app (verified — .env.testing with the flag false still
+     * returned 503 under a forced <env>), and a local .env made these tests
+     * pass on one machine while 7 of them failed in CI. The gateway itself is
+     * Http::fake()d below, so no request ever leaves the process.
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config(['services.gateway.enabled' => true]);
+    }
+
     /** Fake the gateway (and any TMS call the risk jobs make). */
     private function fakeGateway(?array $body = null, int $status = 200): void
     {
